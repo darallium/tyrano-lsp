@@ -1,0 +1,87 @@
+{
+  "name": "typescript-language-server",
+  "description": "A language server for TypeScript",
+  "author": "darallium",
+  "license": "MIT",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/darallium/tyrano-lsp"
+  },
+  "publisher": "CreoAtra",
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [],
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "activationEvents": [
+    "onLanguage:TyranoScript"
+  ],
+  "main": "./client/out/extension",
+  "contributes": {
+    "languages": [
+      {
+        "id": "tyranoscript",
+        "aliases": [
+          "TyranoScript",
+          "tyranoscript"
+        ],
+        "extensions": [
+          ".ks",
+          ".tjs"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "tyranoscript.format",
+        "title": "TyranoScript: Format Document"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "TyranoScript",
+      "properties": {
+        "tyranoscriptLanguageServer.indentSize": {
+          "scope": "resource",
+          "type": "integer",
+          "default": 2,
+          "description": "The number of spaces a tab is equal to."
+        },
+        "tyranoscriptLanguageServer.useTabs": {
+          "scope": "resource",
+          "type": "boolean",
+          "default": false,
+          "description": "Insert spaces instead of tabs."
+        },
+        "tyranoscriptLanguageServer.tagAttributesOnNewLine": {
+          "scope": "resource",
+          "type": "boolean",
+          "default": false,
+          "description": "Insert tag attributes on new lines."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -b",
+    "watch": "tsc -b -w",
+    "lint": "eslint",
+    "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
+    "test": "sh ./scripts/e2e.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "@stylistic/eslint-plugin": "^2.9.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20",
+    "eslint": "^9.13.0",
+    "mocha": "^10.3.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.16.0"
+  }
+}
