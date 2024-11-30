@@ -1,0 +1,335 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "tyranoscript",
+  "patterns": [
+    {
+      "include": "#iscript1"
+    },
+    {
+      "include": "#iscript2"
+    },
+    {
+      "include": "#html1"
+    },
+    {
+      "include": "#html2"
+    },
+    {
+      "include": "#comment_line"
+    },
+    {
+      "include": "#comment_block"
+    },
+    {
+      "include": "#tyranoscript_sharp"
+    },
+    {
+      "include": "#tyranoscript_labels"
+    },
+    {
+      "include": "#tyranoscript_variables"
+    },
+    {
+      "include": "#tyranoscript_tag_only"
+    },
+    {
+      "include": "#tyranoscript_tag[]"
+    }
+  ],
+  "repository": {
+    "iscript1": {
+      "begin": "\\s*(\\[)((?i:iscript))[\\s\\S]*(\\])",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.operator.tyranoscript"
+        },
+        "2": {
+          "name": "support.class.tyranoscript"
+        },
+        "3": {
+          "name": "keyword.operator.tyranoscript"
+        }
+      },
+      "end": "\\s*(\\[)((?i:endscript))\\s*((\\S*)=(\\S*))*(\\])",
+      "endCaptures": {
+        "1": {
+          "name": "keyword.operator.tyranoscript"
+        },
+        "2": {
+          "name": "support.class.tyranoscript"
+        },
+        "4": {
+          "name": "support.function.tyranoscript"
+        },
+        "5": {
+          "name": "string.quoted.double.tyranoscript"
+        },
+        "6": {
+          "name": "keyword.operator.tyranoscript"
+        }
+      },
+      "patterns": [
+        {
+          "include": "source.js"
+        }
+      ]
+    },
+    "iscript2": {
+      "begin": "(\\s*@)((?i:iscript))[\\s\\S]*",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.operator.tyranoscript"
+        },
+        "2": {
+          "name": "support.class.tyranoscript"
+        }
+      },
+      "end": "(\\s*@)((?i:endscript))\\s*((\\S*)=(\\S*))*",
+      "endCaptures": {
+        "1": {
+          "name": "keyword.operator.tyranoscript"
+        },
+        "2": {
+          "name": "support.class.tyranoscript"
+        },
+        "4": {
+          "name": "support.function.tyranoscript"
+        },
+        "5": {
+          "name": "string.quoted.double.tyranoscript"
+        }
+      },
+      "patterns": [
+        {
+          "include": "source.js"
+        }
+      ]
+    },
+    "html1": {
+      "begin": "\\s*(\\[)((?i:html))[\\s]*(\\])",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.operator.tyranoscript"
+        },
+        "2": {
+          "name": "support.class.tyranoscript"
+        },
+        "3": {
+          "name": "keyword.operator.tyranoscript"
+        }
+      },
+      "end": "\\s*(\\[)((?i:endhtml))\\s*((\\S*)=(\\S*))*(\\])",
+      "endCaptures": {
+        "1": {
+          "name": "keyword.operator.tyranoscript"
+        },
+        "2": {
+          "name": "support.class.tyranoscript"
+        },
+        "4": {
+          "name": "support.function.tyranoscript"
+        },
+        "5": {
+          "name": "string.quoted.double.tyranoscript"
+        },
+        "6": {
+          "name": "keyword.operator.tyranoscript"
+        }
+      },
+      "patterns": [
+        {
+          "include": "text.html.basic"
+        },
+        {
+          "information_for_contributors": [
+            "The tag `html` might contain `source.ks source.tyranoscript`",
+            "See orukRed/tyranoscriptsyntax#139"
+          ],
+          "include": "$self"
+        }
+      ]
+    },
+    "html2": {
+      "begin": "(\\s*@)((?i:html))[\\s]*\\b",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.operator.tyranoscript"
+        },
+        "2": {
+          "name": "support.class.tyranoscript"
+        }
+      },
+      "end": "(\\s*@)((?i:endhtml))\\s*((\\S*)=(\\S*))*",
+      "endCaptures": {
+        "1": {
+          "name": "keyword.operator.tyranoscript"
+        },
+        "2": {
+          "name": "support.class.tyranoscript"
+        },
+        "4": {
+          "name": "support.function.tyranoscript"
+        },
+        "5": {
+          "name": "string.quoted.double.tyranoscript"
+        }
+      },
+      "patterns": [
+        {
+          "include": "text.html.basic"
+        },
+        {
+          "information_for_contributors": [
+            "The tag `html` might contain `source.ks source.tyranoscript`",
+            "See orukRed/tyranoscriptsyntax#139"
+          ],
+          "include": "$self"
+        }
+      ]
+    },
+
+    "comment_line": {
+      "name": "comment.line.tyranoscript",
+      "match": "^\\s*;.*"
+    },
+    "comment_block": {
+      "name": "comment.block.tyranoscript",
+      "begin": "\\/\\*",
+      "end": "\\*\\/"
+    },
+    "tyranoscript_sharp": {
+      "name": "token.warn-token.tyranoscript",
+      "comment": "#chara_nameはptextタグの糖衣構文なのでsupport.class.tyranoscriptとおなじのほうがいい？　とりあえず現状は行全部を同色ハイライト",
+      "match": "^\\s*#[\\w-]*"
+    },
+    "__tyranoscript_sharp_in_tag": {
+      "name": "token.warn-token.tyranoscript",
+      "comment": "タグの中のラベル表示に使う　予定だったけど今は実装パス。",
+      "match": "#[\\w]"
+    },
+    "tyranoscript_labels": {
+      "name": "constant.language.tyranoscript",
+      "comment": "ラベル表示に使う",
+      "match": "^\\s*\\*[\\w]+"
+    },
+    "tyranoscript_labels_in_tag": {
+      "name": "constant.language.tyranoscript",
+      "comment": "タグの中のラベル表示につかう",
+      "match": "\\*[\\w\\-]+"
+    },
+    "tyranoscript_tag_value_invalid": {
+      "name": "invalid.illegal.tyranoscript",
+      "comment": "ダブルクォーテーションが閉じられていない時にエラー",
+      "comment": "今は動いてないけど、ダブルクォーテーション必須じゃないとハイライトおかしくなるしこれでいいかも？不要なら次回アプデで削除",
+      "match_comment": "(ダブルクォーテーションから始まって)(value内で使われる文字)(否定先読み使ってダブルクォーテーションで終わってない)",
+      "match": "\"[\\w\\.\\[\\]\\s=']*(?!.*\")."
+    },
+    "tyranoscript_variables": {
+      "name": "variable.parameter.tyranoscript",
+      "comment": "変数の正規表現。変数名には半角英数と全角文字、_ (アンダーバー) を使うことができる　先頭に数字はNG",
+      "comment2": "否定記号を使えば先頭数字を含まない任意の文字列、とかできるはず。",
+      "match_tmp": "\\b(f\\.|sf\\.|tf\\.)([a-zA-Z_ぁ-んァ-ヶ一-龠Ａ-Ｚａ-ｚ]+)(([0-9a-zA-Z_ぁ-んァ-ヶ一-龠０-９Ａ-Ｚａ-ｚー]*))\\b",
+      "match_comment": "(tf. sf. f. mp.)(頭文字数字は禁止)(任意の単語文字 []で配列添字も許可)",
+      "match": "\\b(f\\.|sf\\.|tf\\.|mp\\.)([^0-9０-９])([\\.\\w\\[\\]]*)"
+    },
+    "tyranoscript_tag_name": {
+      "comment": "タグ名の正規表現 jumpとかbgとか",
+      "match": "\\w+",
+      "name": "support.class.tyranoscript"
+    },
+
+    "tyranoscript_tag_param": {
+      "comment": "タグのパラメータの正規表現 param=value  のところ",
+      "comment": "valueにはhoge.ksとか10とかtrueとか6000-10000とか*hogeとかf.hogeが入る。",
+      "comment": "evalタグだとf.hoge=53とか、condパラメータでcond=f.hoge <= 1243 とかあるから注意",
+      "match_tmp": "(\\w+)=(\"?\\w+\"?)",
+      "comment": "パラメータに入れる値は、日本語英数字　ダブルクォーテーション　シングルクォーテーション　.　[　]　/　バックスラッシュ　&　|　<　>　=　!　,",
+      "match_tmp2": "(\\w+)=([,'&|<>=!\\S\\s\"/\\.\\\\]*)",
+      "match_comment": "[^\"]*　とかのほうがよかったかも？",
+      "match_tmp": "(\\w+)=(\"[「」!?？！-／：［］｀｛～〜”’・…＋、。{}\\*\\-+(),'&|<>=!\\w\\[\\]\\s/\\.\\\\]*\")",
+      "match": "(\\w+)=(\"[^\"]*\")",
+      "captures": {
+        "1": {
+          "name": "string.other.tyranoscript"
+        },
+        "2": {
+          "name": "entity.other.attribute-name.tyranoscript",
+          "patterns": [
+            {
+              "include": "#tyranoscript_variables"
+            },
+            {
+              "include": "#tyranoscript_labels_in_tag"
+            },
+            {
+              "include_tmp": "#tyranoscript_tag_value_invalid"
+            }
+          ]
+        }
+      }
+    },
+
+    "tyranoscript_tag": {
+      "match_comment": "(class)\\s*(param=hoge)*",
+      "match": "(\\S*)\\s*([\\S\\s]*)",
+      "captures": {
+        "1": {
+          "patterns": [
+            {
+              "include": "#tyranoscript_tag_name"
+            }
+          ]
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#tyranoscript_tag_param"
+            }
+          ]
+        }
+      }
+    },
+
+    "tyranoscript_tag_only": {
+      "comment": "タグ名だけでパラメータがないもののハイライト",
+      "comment": "FIXME:[]で囲んだタグの対応が複数あるのは良くないので修正すること",
+      "match": "(\\[)(\\w*)(\\])",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.tyranoscript"
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#tyranoscript_tag"
+            }
+          ]
+        },
+        "3": {
+          "name": "keyword.operator.tyranoscript"
+        }
+      }
+    },
+
+    "tyranoscript_tag[]": {
+      "comment": "[]で囲んだタグのハイライト",
+      "match": "(\\[|^[\\s]*@)(.*?)(?<!\\[[0-9\\w\\_\\.]*)(\\]|$)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.tyranoscript"
+        },
+        "2": {
+          "patterns": [
+            {
+              "include": "#tyranoscript_tag"
+            }
+          ]
+        },
+        "3": {
+          "name": "keyword.operator.tyranoscript"
+        }
+      }
+    }
+  },
+  "scopeName": "source.ks"
+}

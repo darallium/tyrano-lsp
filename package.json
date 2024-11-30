@@ -35,6 +35,13 @@
         "configuration": "./language-configuration.json"
       }
     ],
+	"grammars": [
+		{
+			"language": "tyranoscript",
+			"scopeName": "source.ks",
+			"path": "./syntax/tyranoscript.tmLanguage.json"
+		}
+	],
     "commands": [
       {
         "command": "tyranoscript.format",
