@@ -69,6 +69,12 @@
           "type": "boolean",
           "default": false,
           "description": "Insert tag attributes on new lines."
+        },
+        "tyranoscriptLanguageServer.newline": {
+          "scope": "resource",
+          "type": "string",
+          "default": "\n",
+          "description": "Insert tag attributes on new lines."
         }
       }
     }

@@ -4,6 +4,7 @@ enum TokenType {
   Text,
   Comment,
   Macro,
+  EndMacro,
   If,
   ElseIf,
   Else,
@@ -12,6 +13,7 @@ enum TokenType {
   Endscript,
   Html,
   Endhtml,
+  InlineLanguage,
 }
 
 // トークン
@@ -20,12 +22,14 @@ interface Token {
   value: string;
   line: number;
   column: number;
+  children: Node[];
 }
 
 // タグのパラメータ
 interface TagParameter {
   name: string;
   value: string;
+  children: Node[];
 }
 
 // タグのASTノード
@@ -33,33 +37,39 @@ interface TagNode {
   type: TokenType.Tag;
   name: string;
   parameters: TagParameter[];
+  inheritParams: boolean;
   line: number;
   column: number;
+  children: Node[];
 }
 
-// テキストのASTノード
 interface TextNode {
   type: TokenType.Text;
   value: string;
   line: number;
   column: number;
+  children: Node[];
 }
-// コメントのASTノード
+
 interface CommentNode {
   type: TokenType.Comment;
   value: string;
   line: number;
   column: number;
+  children: Node[];
 }
 
-// マクロ呼び出しノード
 interface MacroNode {
   type: TokenType.Macro;
   name: string;
-  parameters: TagParameter[];
   line: number;
   column: number;
-  inheritParams?: boolean; // *付きかどうかを示すフラグ
+  children: Node[];
+}
+interface EndMacroNode {
+  type: TokenType.EndMacro;
+  line: number;
+  column: number;
   children: Node[];
 }
 
@@ -91,32 +101,43 @@ interface EndIfNode {
   type: TokenType.EndIf;
   line: number;
   column: number;
+  children: Node[];
 }
 
 interface IscriptNode {
   type: TokenType.Iscript;
   line: number;
   column: number;
-  children: Node[]; // 子ノードを追加
+  children: Node[];
 }
 
 interface EndscriptNode {
   type: TokenType.Endscript;
   line: number;
   column: number;
+  children: Node[];
 }
 
 interface HtmlNode {
   type: TokenType.Html;
   line: number;
   column: number;
-  children: Node[]; // 子ノードを追加
+  children: Node[];
 }
 
 interface EndhtmlNode {
   type: TokenType.Endhtml;
   line: number;
   column: number;
+  children: Node[];
+}
+
+interface InlineLanguageNode {
+  type: TokenType.InlineLanguage;
+  line: number;
+  column: number;
+  children: Node[];
+  sources: string[];
 }
 
 //ASTのノードタイプを定義
@@ -132,7 +153,9 @@ type Node =
   | IscriptNode
   | EndscriptNode
   | HtmlNode
-  | EndhtmlNode;
+  | EndhtmlNode
+  | InlineLanguageNode
+  | EndMacroNode;
 
 // ParseError クラス
 class ParseError extends Error {
@@ -150,29 +173,75 @@ class TyranoScriptParser {
   private tokens: Token[] = [];
   private currentTokenIndex = 0;
   parse(script: string): Node[] {
-    const nodes: Node[] = [];
+    let nodes: Node[] = [];
     const lines = script.split("\n");
-    // let stack: (
-    //   | { type: TokenType.Macro; node: MacroNode }
-    //   | { type: TokenType.If; node: IfNode }
-    //   | { type: TokenType.ElseIf; node: ElseIfNode }
-    //   | { type: TokenType.Else; node: ElseNode }
-    //   | { type: TokenType.Html; node: HtmlNode }
-    //   | { type: TokenType.Iscript; node: IscriptNode }
-    // )[] = [];
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const stack: { type: TokenType; node: any }[] = [];
+    const stack: (
+      | { type: TokenType.Macro; nodes: Node[] }
+      | { type: TokenType.If; nodes: Node[] }
+      | { type: TokenType.ElseIf; nodes: Node[] }
+      | { type: TokenType.Else; nodes: Node[] }
+      | { type: TokenType.Html; nodes: Node[] }
+      | { type: TokenType.Iscript; nodes: Node[] }
+    )[] = [];
+    let onInlineLanguage = false;
 
     for (let i = 0; i < lines.length; i++) {
+      console.log("line", i, nodes, stack);
+      // インライン言語の場合
+      if (onInlineLanguage) {
+        const line = lines[i];
+        switch (stack[stack.length - 1].type) {
+          case TokenType.Iscript: {
+            if (line.includes("[endscript]")) {
+              onInlineLanguage = false;
+            } else {
+              const inlineLanguageNode: InlineLanguageNode = {
+                type: TokenType.InlineLanguage,
+                line: i,
+                column: 0,
+                children: [],
+                sources: [line],
+              };
+              nodes.push(inlineLanguageNode);
+              break;
+            }
+            break;
+          }
+          case TokenType.Html: {
+            if (line.includes("[endhtml]")) {
+              onInlineLanguage = false;
+            } else {
+              const inlineLanguageNode: InlineLanguageNode = {
+                type: TokenType.InlineLanguage,
+                line: i,
+                column: 0,
+                children: [],
+                sources: [line],
+              };
+              nodes.push(inlineLanguageNode);
+              break;
+            }
+            break;
+          }
+        }
+      }
       const line = lines[i];
+      if (onInlineLanguage) {
+        continue;
+      }
       let column = 0;
       while (column < line.length) {
         const char = line[column];
+        if(char.trim().length === 0){
+          column++;
+          continue;
+        }
+        console.log("char", char);
 
         if (char === "[") {
           let nextColumn: number;
           let node: Node;
+
           if (stack.length > 0) {
             [node, nextColumn] = this.parseTag(line, i, column);
           } else {
@@ -180,27 +249,19 @@ class TyranoScriptParser {
           }
 
           //スタックに積むべきノードを判定
-
           switch (node.type) {
-            case TokenType.Macro: {
-              stack.push({
-                type: TokenType.Macro,
-                node: node,
-              });
-              break;
-            }
             case TokenType.Iscript:
             case TokenType.Html:
+              onInlineLanguage = true;
+            // eslint-disable-next-line no-fallthrough
+            case TokenType.Macro:
+            case TokenType.If: {
+              nodes.push(node);
               stack.push({
                 type: node.type,
-                node: node,
+                nodes: nodes,
               });
-              break;
-            case TokenType.If: {
-              stack.push({
-                type: TokenType.If,
-                node: node,
-              });
+              nodes = [];
               break;
             }
             case TokenType.ElseIf: {
@@ -210,8 +271,14 @@ class TyranoScriptParser {
                   current_stack.type === TokenType.If ||
                   current_stack.type === TokenType.ElseIf
                 ) {
-                  current_stack.node.children = nodes;
-                  stack.push({ type: TokenType.ElseIf, node: node });
+                  current_stack.nodes[current_stack.nodes.length - 1].children =
+                    nodes;
+                  current_stack.nodes.push(node);
+                  stack.push({
+                    type: TokenType.ElseIf,
+                    nodes: current_stack.nodes,
+                  });
+                  nodes = [];
                 }
               } else {
                 throw new ParseError(
@@ -229,8 +296,14 @@ class TyranoScriptParser {
                   current_stack.type === TokenType.If ||
                   current_stack.type === TokenType.ElseIf
                 ) {
-                  current_stack.node.children = nodes;
-                  stack.push({ type: TokenType.Else, node: node });
+                  current_stack.nodes[current_stack.nodes.length - 1].children =
+                    nodes;
+                  current_stack.nodes.push(node);
+                  stack.push({
+                    type: TokenType.Else,
+                    nodes: current_stack.nodes,
+                  });
+                  nodes = [];
                 } else {
                   throw new ParseError(
                     "elseがifやelseifの外にあります",
@@ -241,29 +314,96 @@ class TyranoScriptParser {
               }
               break;
             }
-            case TokenType.EndIf:
-            case TokenType.Endscript:
-            case TokenType.Endhtml: {
-              const current_endif_stack = stack.pop();
-              if (current_endif_stack) {
-                current_endif_stack.node.children = nodes;
-                if (stack.length > 0) {
-                  const parent = stack[stack.length - 1].node;
-                  parent.children.push(current_endif_stack.node);
+            case TokenType.EndIf: {
+              const current_stack = stack.pop();
+              if (current_stack) {
+                if (
+                  current_stack.type === TokenType.If ||
+                  current_stack.type === TokenType.ElseIf ||
+                  current_stack.type === TokenType.Else
+                ) {
+                  current_stack.nodes[current_stack.nodes.length - 1].children =
+                    nodes;
+                  current_stack.nodes.push(node);
+                  nodes = current_stack.nodes;
                 } else {
-                  nodes.push(current_endif_stack.node);
+                  throw new ParseError(
+                    "ifが正しく閉じられていません",
+                    i,
+                    column
+                  );
                 }
               }
-              //nodes = [];
               break;
+            }
+
+            case TokenType.EndMacro: {
+              const current_stack = stack.pop();
+              if (current_stack) {
+                if (current_stack.type === TokenType.Macro) {
+                  current_stack.nodes[current_stack.nodes.length - 1].children =
+                    nodes;
+                  current_stack.nodes.push(node);
+                  nodes = current_stack.nodes;
+                } else {
+                  throw new ParseError(
+                    "macroが正しく閉じられていません",
+                    i,
+                    column
+                  );
+                }
+              } else {
+                throw new ParseError(
+                  "macroが正しく閉じられていません",
+                  i,
+                  column
+                );
+              }
+              break;
+            }
+            case TokenType.Endscript: {
+              const current_stack = stack.pop();
+              if (current_stack) {
+                if (current_stack.type === TokenType.Iscript) {
+                  current_stack.nodes[current_stack.nodes.length - 1].children =
+                    nodes;
+                  current_stack.nodes.push(node);
+                  nodes = current_stack.nodes;
+                } else {
+                  throw new ParseError(
+                    "iscriptが正しく閉じられていません",
+                    i,
+                    column
+                  );
+                }
+              }
+              onInlineLanguage = false;
+              break;
+            }
+            case TokenType.Endhtml: {
+              {
+                const current_stack = stack.pop();
+                if (current_stack) {
+                  if (current_stack.type === TokenType.Html) {
+                    current_stack.nodes[
+                      current_stack.nodes.length - 1
+                    ].children = nodes;
+                    current_stack.nodes.push(node);
+                    nodes = current_stack.nodes;
+                  } else {
+                    throw new ParseError(
+                      "htmlが正しく閉じられていません",
+                      i,
+                      column
+                    );
+                  }
+                }
+                break;
+              }
             }
             default:
               // その他のタグは現在のノードの子ノードとして追加
-              if (stack.length > 0) {
-                stack[stack.length - 1].node.children.push(node);
-              } else {
-                nodes.push(node);
-              }
+              nodes.push(node);
 
               break;
           }
@@ -272,10 +412,11 @@ class TyranoScriptParser {
         } else if (char === ";") {
           // コメントをパース
           const commentNode: CommentNode = {
-            value: line.slice(column),
+            value: line.slice(column).trim().substring(1),
             line: i,
             column: column,
             type: TokenType.Comment,
+            children: [],
           };
 
           nodes.push(commentNode);
@@ -289,7 +430,9 @@ class TyranoScriptParser {
         } else {
           // テキストをパース
           const [textNode, nextColumn] = this.parseText(line, i, column);
-          nodes.push(textNode);
+          if (textNode.value.length > 0) {
+            nodes.push(textNode);
+          }
           column = nextColumn;
         }
       }
@@ -314,6 +457,7 @@ class TyranoScriptParser {
       tagContent += "]";
       currentColumn++;
     }
+    line = line.trim();
 
     const parameters: TagParameter[] = [];
     const tagParts = tagContent.slice(1, -1).split(/\s+/).filter(Boolean);
@@ -330,23 +474,23 @@ class TyranoScriptParser {
         const match = value.match(/^"(.*)"$/);
 
         if (match) {
-          paramValue = match[1];
+          paramValue = '"' + match[1] + '"';
         } else {
           paramValue = value;
         }
       }
 
-      parameters.push({ name: name, value: paramValue });
+      parameters.push({
+        name: name,
+        value: paramValue,
+        children: [],
+      });
     }
 
     let node: Node;
     let inheritParams = false;
     // macroタグの * を判定
-    if (
-      tagName === "macro" &&
-      parameters.length > 0 &&
-      parameters[0].name === "*"
-    ) {
+    if (parameters.length > 0 && parameters[0].name === "*") {
       inheritParams = true;
       parameters.shift(); // * パラメータを削除
     }
@@ -354,11 +498,9 @@ class TyranoScriptParser {
     if (tagName === "macro") {
       const macroNode: MacroNode = {
         type: TokenType.Macro,
-        name: tagName,
-        parameters: parameters,
+        name: parameters.length > 0 ? parameters[0].value : "",
         line: lineNumber,
         column: startIndex,
-        inheritParams: inheritParams, // inheritParams を設定
         children: [],
       };
       node = macroNode;
@@ -393,6 +535,7 @@ class TyranoScriptParser {
         type: TokenType.EndIf,
         line: lineNumber,
         column: startIndex,
+        children: [],
       };
 
       node = endifNode;
@@ -409,6 +552,7 @@ class TyranoScriptParser {
         type: TokenType.Endscript,
         line: lineNumber,
         column: startIndex,
+        children: [],
       };
       node = endscriptNode;
     } else if (tagName === "html") {
@@ -425,8 +569,17 @@ class TyranoScriptParser {
         type: TokenType.Endhtml,
         line: lineNumber,
         column: startIndex,
+        children: [],
       };
       node = endhtmlNode;
+    } else if (tagName === "endmacro") {
+      const endMacroNode: EndMacroNode = {
+        type: TokenType.EndMacro,
+        line: lineNumber,
+        column: startIndex,
+        children: [],
+      };
+      node = endMacroNode;
     } else {
       const tagNode: TagNode = {
         name: tagName,
@@ -434,6 +587,8 @@ class TyranoScriptParser {
         line: lineNumber,
         column: startIndex,
         type: TokenType.Tag,
+        inheritParams: inheritParams, // inheritParams を設定
+        children: [],
       };
       node = tagNode;
     }
@@ -461,7 +616,7 @@ class TyranoScriptParser {
 
           endComment = true;
         } else {
-          commentContent += line[currentColumn];
+          commentContent += line[currentColumn].trim();
           currentColumn++;
         }
       }
@@ -480,6 +635,7 @@ class TyranoScriptParser {
         line: -1,
         column: -1,
         type: TokenType.Comment,
+        children: [],
       };
       return [dummyNode, -1, -1];
     }
@@ -489,6 +645,7 @@ class TyranoScriptParser {
       line: lineNumber,
       column: column,
       type: TokenType.Comment,
+      children: [],
     };
 
     return [commentNode, i, currentColumn];
@@ -505,25 +662,51 @@ class TyranoScriptParser {
     while (currentColumn < line.length) {
       const char = line[currentColumn];
       if (char === "[") {
+        throw new ParseError(
+          "実装ミス: タグの開始が見つかりました",
+          lineNumber,
+          currentColumn
+        );
         break; // タグの開始なので終了
       } else if (char === ";") {
+        throw new ParseError(
+          "実装ミス: コメントの開始が見つかりました",
+          lineNumber,
+          currentColumn
+        );
         break;
       } else if (char === "/" && line[currentColumn + 1] === "*") {
+        throw new ParseError(
+          "実装ミス: 複数行コメントの開始が見つかりました",
+          lineNumber,
+          currentColumn
+        );
         break;
       } else {
         textContent += char;
       }
       currentColumn++;
     }
+    let node: TextNode;
+    if (textContent.trim().length === 0) {
+      node = {
+        value: "",
+        line: -1,
+        column: -1,
+        type: TokenType.Text,
+        children: [],
+      };
+    } else {
+      node = {
+        value: textContent,
+        line: lineNumber,
+        column: column,
+        type: TokenType.Text,
+        children: [],
+      };
+    }
 
-    const textNode: TextNode = {
-      value: textContent,
-      line: lineNumber,
-      column: column,
-      type: TokenType.Text,
-    };
-
-    return [textNode, currentColumn];
+    return [node, currentColumn];
   }
 }
 

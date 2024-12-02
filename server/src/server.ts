@@ -14,7 +14,7 @@ import {
 
 import { TextDocument } from "vscode-languageserver-textdocument";
 
-import { TyranoScriptParser,ParseError } from "./parser";
+import { TyranoScriptParser } from "./parser";
 import { TyranoScriptFormatter, FormatterOptions } from "./formatter";
 import { TyranoScriptLinter } from "./linter";
 
@@ -91,6 +91,7 @@ const defaultSettings: FormatterOptions = {
   indentSize: 2,
   useTabs: false,
   tagAttributesOnNewLine: true,
+  newline: "\r\n",
 };
 let globalSettings: FormatterOptions = defaultSettings;
 
@@ -205,7 +206,7 @@ connection.onDocumentFormatting(async (params, _token) => {
 
     const formatter = new TyranoScriptFormatter(settings);
 
-	console.log(document.getText());
+	//console.log(document.getText());
 	console.log(parser.parse(document.getText()));
 	const ast = (() => {
 		try{
