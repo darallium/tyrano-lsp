@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/darallium/tyrano-lsp"
   },
-  "publisher": "CreoAtra",
+  "publisher": "darallium",
   "categories": [
     "Programming Languages"
   ],
@@ -35,13 +35,13 @@
         "configuration": "./language-configuration.json"
       }
     ],
-	"grammars": [
-		{
-			"language": "tyranoscript",
-			"scopeName": "source.ks",
-			"path": "./syntax/tyranoscript.tmLanguage.json"
-		}
-	],
+    "grammars": [
+      {
+        "language": "tyranoscript",
+        "scopeName": "source.ks",
+        "path": "./syntax/tyranoscript.tmLanguage.json"
+      }
+    ],
     "commands": [
       {
         "command": "tyranoscript.format",
@@ -95,6 +95,7 @@
     "eslint": "^9.13.0",
     "mocha": "^10.3.0",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.16.0"
+    "typescript-eslint": "^8.16.0",
+    "vsce": "^2.15.0"
   }
 }

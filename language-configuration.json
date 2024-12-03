@@ -18,6 +18,18 @@
 		[
 			"(",
 			")"
+		],
+		[
+			"iscript",
+			"endscript"
+		],
+		[
+			"vostart",
+			"vostop"
+		],
+		[
+			"3d_event_start",
+			"3d_event_end"
 		]
 	],
 	"autoClosingPairs": [
@@ -44,6 +56,18 @@
 		{
 			"open": "(",
 			"close": ")"
+		},
+		{
+			"open":"iscript",
+			"close":"endscript"
+		},
+		{
+			"open": "vostart",
+			"close": "vostop"
+		},
+		{
+			"open": "3d_event_start",
+			"close": "3d_event_end"
 		}
 	],
 	"surroundingPairs": [
@@ -70,6 +94,18 @@
 		{
 			"open": "(",
 			"close": ")"
+		},
+		{
+			"open":"iscript",
+			"close":"endscript"
+		},
+		{
+			"open": "vostart",
+			"close": "vostop"
+		},
+		{
+			"open": "3d_event_start",
+			"close": "3d_event_end"
 		}
 	]
 }
