@@ -1,6 +1,6 @@
 {
-  "name": "typescript-language-server",
-  "description": "A language server for TypeScript",
+  "name": "tyranoscript-language-server",
+  "description": "A language server for TyranoScript",
   "author": "darallium",
   "license": "MIT",
   "version": "0.0.2",
