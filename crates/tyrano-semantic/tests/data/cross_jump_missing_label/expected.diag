@@ -1,0 +1,1 @@
+data/scenario/first.ks:2:32: error xsem-unknown-label-in-storage: label `missing` not found in `scene2.ks`

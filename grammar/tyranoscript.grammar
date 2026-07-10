@@ -1,0 +1,156 @@
+// TyranoScript grammar, matched to the context-sensitive lexer in
+// crates/tyrano-parser-generator/src/lexer/scanner.rs (which mirrors the
+// engine's kag.parser.js). The lexer decides token types by line/tag context,
+// so this grammar only needs to describe line structure:
+//   TEXT        free text segments (incl. Japanese), label/chara segments
+//   IDENTIFIER  tag names and parameter names (content is unrestricted)
+//   STRING      quoted parameter values (' " `)
+//   NUMBER/TEXT/ENTITY/PARAM_REF  unquoted parameter values
+%start scenario
+%token TEXT IDENTIFIER NUMBER STRING SCRIPT_TEXT HTML_TEXT
+%token ISCRIPT_START ISCRIPT_END HTML_START HTML_END
+%token BLOCK_COMMENT_START BLOCK_COMMENT_END LINE_COMMENT
+%token SHARP ASTERISK AT LBRACKET RBRACKET
+%token UNDERSCORE EQUAL COLON PIPE
+%token ENTITY PARAM_REF
+%token NEWLINE
+
+%%
+
+scenario
+    : line_list
+    ;
+
+line_list
+    : /* empty */
+    | line_list line
+    | line_list NEWLINE
+    ;
+
+line
+    : block_comment_start
+    | block_comment_end
+    | line_comment
+    | character_name
+    | label
+    | tag_at
+    | iscript_block
+    | html_block
+    | text_line
+    ;
+
+block_comment_start
+    : BLOCK_COMMENT_START
+    ;
+
+block_comment_end
+    : BLOCK_COMMENT_END
+    ;
+
+line_comment
+    : LINE_COMMENT
+    ;
+
+// #name / #name:face — the lexer emits at most one COLON and pre-split
+// TEXT segments (either side may be empty and is then omitted).
+character_name
+    : SHARP chara_spec
+    | SHARP
+    ;
+
+chara_spec
+    : TEXT
+    | TEXT COLON
+    | TEXT COLON TEXT
+    | COLON
+    | COLON TEXT
+    ;
+
+// *name / *name|title — same pre-split contract as chara_spec.
+label
+    : ASTERISK label_spec
+    | ASTERISK
+    ;
+
+label_spec
+    : TEXT
+    | TEXT PIPE
+    | TEXT PIPE TEXT
+    | PIPE
+    | PIPE TEXT
+    ;
+
+tag_at
+    : AT tag_content
+    ;
+
+text_line
+    : UNDERSCORE
+    | UNDERSCORE mixed_content
+    | mixed_content
+    ;
+
+mixed_content
+    : text_segment
+    | bracket_tag
+    | mixed_content text_segment
+    | mixed_content bracket_tag
+    ;
+
+bracket_tag
+    : LBRACKET tag_content RBRACKET
+    ;
+
+tag_content
+    : IDENTIFIER parameter_list
+    ;
+
+parameter_list
+    : /* empty */
+    | parameter_list parameter
+    | parameter_list ASTERISK
+    ;
+
+parameter
+    : param_name EQUAL parameter_value
+    | param_name EQUAL
+    | param_name
+    ;
+
+param_name
+    : IDENTIFIER
+    ;
+
+parameter_value
+    : STRING
+    | NUMBER
+    | TEXT
+    | ENTITY
+    | PARAM_REF
+    ;
+
+text_segment
+    : TEXT
+    ;
+
+iscript_block
+    : ISCRIPT_START script_content ISCRIPT_END
+    ;
+
+script_content
+    : /* empty */
+    | script_content SCRIPT_TEXT
+    | script_content NEWLINE
+    ;
+
+html_block
+    : HTML_START html_content HTML_END
+    ;
+
+html_content
+    : /* empty */
+    | html_content HTML_TEXT
+    | html_content NEWLINE
+    ;
+
+%%

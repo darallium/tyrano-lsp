@@ -1,0 +1,14 @@
+scenario@0..18
+  text_line@0..18
+    inline_tag@0..17
+      l_bracket@0..1 "["
+      tag_name@1..7
+        ident@1..6 "ptext" trail(whitespace@6..7)
+      param@7..16
+        ident@7..11 "text"
+        eq@11..12 "="
+        param_value@12..16
+          string@12..16 "\"abc"
+      r_bracket@16..17 "]"
+    newline@17..18 "\n"
+  eof@18..18 ""

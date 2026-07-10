@@ -1,0 +1,30 @@
+== scopes ==
+scope0 root 0..160
+scope1 macro-body(def2 "x") 55..81 parent=scope0
+scope2 macro-body(def3 "a") 107..118 parent=scope0
+scope3 macro-body(def4 "a") 133..144 parent=scope0
+scope4 macro-body(def5 "z") 159..160 parent=scope0
+== symbols ==
+sym0 label "dup" defs=[def0, def1]
+sym1 macro "x" defs=[def2]
+sym2 macro "a" defs=[def3, def4]
+sym3 macro "z" defs=[def5]
+== definitions ==
+def0 sym0 item1 name@1..4 full@0..5 scope0
+def1 sym0 item2 name@6..9 full@5..10 scope0
+def2 sym1 item8 name@53..54 full@41..55 scope0
+def3 sym2 item16 name@105..106 full@93..107 scope0
+def4 sym2 item20 name@131..132 full@119..133 scope0
+def5 sym3 item24 name@157..158 full@145..159 scope0
+== uses ==
+use0 jump-target "nowhere" @23..31 item4 -> unknown
+== places ==
+== embedded ==
+== errors ==
+sem-duplicate-label @6..9 :: duplicate label `dup` (first defined earlier)
+sem-unknown-label-target @23..31 :: unknown label `nowhere` in this file
+sem-macro-missing-name @33..40 :: macro is missing a name= parameter
+sem-nested-macro @56..70 :: macro nested inside macro `x` (macros do not nest)
+sem-stray-endmacro @82..92 :: [endmacro] with no matching [macro]
+sem-duplicate-macro @131..132 :: duplicate macro `a` (first defined earlier)
+sem-unclosed-macro @157..158 :: macro `z` is never closed with [endmacro]

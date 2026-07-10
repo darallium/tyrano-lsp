@@ -1,0 +1,2 @@
+data/scenario/main.ks:3:2: warning xsem-unknown-tag: unknown tag `typo_tag` (not a builtin or a visible macro)
+data/scenario/main.ks:4:2: warning xsem-unknown-tag: unknown tag `another_typo` (not a builtin or a visible macro)

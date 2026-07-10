@@ -1,0 +1,8 @@
+scenario@0..28
+  block_comment@0..28
+    slash_star@0..2 "/*"
+    newline@2..3 "\n"
+    comment_text@3..27 "閉じないコメント"
+    newline@27..28 "\n"
+    star_slash@28..28 "" (missing)
+  eof@28..28 ""

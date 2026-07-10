@@ -1,0 +1,14 @@
+== scopes ==
+scope0 root 0..83
+== symbols ==
+sym0 character "akane" defs=[def0]
+sym1 character "yuko" defs=[def1]
+== definitions ==
+def0 sym0 item1 name@1..6 full@0..13 scope0
+def1 sym1 item3 name@29..33 full@13..34 scope0
+== uses ==
+use0 character-ref "akane" @52..57 item5 -> def0
+use1 character-ref "ghost" @76..81 item7 -> unknown
+== places ==
+== embedded ==
+== errors ==

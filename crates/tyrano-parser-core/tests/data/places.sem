@@ -1,0 +1,18 @@
+== scopes ==
+scope0 root 0..92
+== symbols ==
+sym0 label "a" defs=[def0]
+== definitions ==
+def0 sym0 item5 name@68..69 full@67..70 scope0
+== uses ==
+use0 jump-target "a" @63..65 item4 -> def0
+== places ==
+place0 f.hp
+place1 sf.flags.done
+place2 f.bg
+occ place0 write @11..15 item2
+occ place0 read @18..22 item2
+occ place1 read @41..54 item4
+occ place2 read @86..90 item7
+== embedded ==
+== errors ==

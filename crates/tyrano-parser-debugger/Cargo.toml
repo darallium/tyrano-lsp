@@ -1,0 +1,10 @@
+[package]
+name = "tyrano-parser-debugger"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tyrano-lexer = { path = "../tyrano-lexer" }
+tyrano-parser = { path = "../tyrano-parser" }
+tyrano-parser-generator = { path = "../tyrano-parser-generator" }
+clap = { version = "4", features = ["derive"] }

@@ -1,0 +1,13 @@
+== scopes ==
+scope0 root 0..121
+== symbols ==
+sym0 label "start" defs=[def0]
+== definitions ==
+def0 sym0 item1 name@1..6 full@0..7 scope0
+== uses ==
+== places ==
+== embedded ==
+embedded iscript @17..54 item2
+embedded html @74..88 item6
+embedded iscript @108..108 item10
+== errors ==

@@ -1,0 +1,36 @@
+scenario@0..86
+  iscript_block@0..55
+    inline_tag@0..9
+      l_bracket@0..1 "["
+      tag_name@1..8
+        ident@1..8 "iscript"
+      r_bracket@8..9 "]"
+    newline@9..10 "\n"
+    script_text@10..20 "var a = 1;"
+    newline@20..21 "\n"
+    script_text@21..42 "f.name = \"あかね\";"
+    newline@42..43 "\n"
+    text_line@43..55
+      inline_tag@43..54
+        l_bracket@43..44 "["
+        tag_name@44..53
+          ident@44..53 "endscript"
+        r_bracket@53..54 "]"
+      newline@54..55 "\n"
+  html_block@55..86
+    inline_tag@55..61
+      l_bracket@55..56 "["
+      tag_name@56..60
+        ident@56..60 "html"
+      r_bracket@60..61 "]"
+    newline@61..62 "\n"
+    html_text@62..75 "<b>太字</b>"
+    newline@75..76 "\n"
+    text_line@76..86
+      inline_tag@76..85
+        l_bracket@76..77 "["
+        tag_name@77..84
+          ident@77..84 "endhtml"
+        r_bracket@84..85 "]"
+      newline@85..86 "\n"
+  eof@86..86 ""

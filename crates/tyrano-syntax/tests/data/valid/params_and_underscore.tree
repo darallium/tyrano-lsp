@@ -1,0 +1,34 @@
+scenario@0..80
+  text_line@0..25
+    underscore@0..1 "_"
+    text@1..24 "  インデント保持"
+    newline@24..25 "\n"
+  text_line@25..45
+    inline_tag@25..44
+      l_bracket@25..26 "["
+      tag_name@26..36
+        ident@26..35 "macro_use" trail(whitespace@35..36)
+      param@36..38
+        star@36..37 "*" trail(whitespace@37..38)
+      param@38..43
+        ident@38..43 "flag2"
+      r_bracket@43..44 "]"
+    newline@44..45 "\n"
+  text_line@45..80
+    inline_tag@45..79
+      l_bracket@45..46 "["
+      tag_name@46..51
+        ident@46..50 "eval" trail(whitespace@50..51)
+      param@51..65
+        ident@51..54 "exp"
+        eq@54..55 "="
+        param_value@55..65
+          entity@55..64 "&f.a[0]+1" trail(whitespace@64..65)
+      param@65..78
+        ident@65..69 "cond"
+        eq@69..70 "="
+        param_value@70..78
+          string@70..78 "\"f.x==1\""
+      r_bracket@78..79 "]"
+    newline@79..80 "\n"
+  eof@80..80 ""

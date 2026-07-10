@@ -1,0 +1,47 @@
+scenario@0..98
+  label_line@0..26
+    star@0..1 "*"
+    label_name@1..6
+      text@1..6 "start"
+    pipe@6..7 "|"
+    label_value@7..25
+      text@7..25 "オープニング"
+    newline@25..26 "\n"
+  chara_line@26..39
+    sharp@26..27 "#"
+    chara_name@27..32
+      text@27..32 "akane"
+    colon@32..33 ":"
+    chara_face@33..38
+      text@33..38 "happy"
+    newline@38..39 "\n"
+  text_line@39..67
+    text@39..54 "こんにちは"
+    inline_tag@54..57
+      l_bracket@54..55 "["
+      tag_name@55..56
+        ident@55..56 "l"
+      r_bracket@56..57 "]"
+    text@57..63 "世界"
+    inline_tag@63..66
+      l_bracket@63..64 "["
+      tag_name@64..65
+        ident@64..65 "r"
+      r_bracket@65..66 "]"
+    newline@66..67 "\n"
+  at_tag_line@67..98
+    at@67..68 "@"
+    tag_name@68..71
+      ident@68..70 "bg" trail(whitespace@70..71)
+    param@71..88
+      ident@71..78 "storage"
+      eq@78..79 "="
+      param_value@79..88
+        text@79..87 "room.jpg" trail(whitespace@87..88)
+    param@88..97
+      ident@88..92 "time"
+      eq@92..93 "="
+      param_value@93..97
+        number@93..97 "1000"
+    newline@97..98 "\n"
+  eof@98..98 ""

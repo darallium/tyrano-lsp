@@ -1,0 +1,95 @@
+{
+  "name": "tyranoscript",
+  "displayName": "TyranoScript",
+  "description": "Language support for TyranoScript (.ks) visual-novel scenario files: diagnostics, hover, completion, go-to-definition, references and document symbols, powered by the tyrano-lsp language server.",
+  "publisher": "darallium",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/darallium/tyrano-parser"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:tyranoscript"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "tyranoscript",
+        "aliases": [
+          "TyranoScript",
+          "tyranoscript"
+        ],
+        "extensions": [
+          ".ks"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "tyranoscript",
+        "scopeName": "source.tyranoscript",
+        "path": "./syntaxes/tyranoscript.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.block.javascript": "javascript",
+          "meta.embedded.block.html": "html"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "tyranoscript.restartServer",
+        "title": "TyranoScript: Restart Language Server"
+      }
+    ],
+    "configuration": {
+      "title": "TyranoScript",
+      "properties": {
+        "tyranoscript.server.path": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the tyrano-lsp executable. When empty, the extension searches (in order): `tyrano-lsp` on PATH, then `<extension>/server/tyrano-lsp`, then `<workspace>/target/release/tyrano-lsp`, then `<workspace>/target/debug/tyrano-lsp`."
+        },
+        "tyranoscript.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the TyranoScript language server."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --platform=node --format=cjs --sourcemap",
+    "typecheck": "tsc --noEmit",
+    "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --platform=node --format=cjs --sourcemap --watch",
+    "test:e2e": "node test/e2e-protocol.mjs",
+    "test:integration": "node test/runTest.mjs",
+    "package": "vsce package",
+    "vscode:prepublish": "npm run compile"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^2.24.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0"
+  }
+}

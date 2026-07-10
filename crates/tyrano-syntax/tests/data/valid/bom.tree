@@ -1,0 +1,11 @@
+scenario@0..37
+  comment_line@0..26
+    semicolon@3..4 ";" lead(bom@0..3)
+    comment_text@4..25 "BOM付きファイル"
+    newline@25..26 "\n"
+  label_line@26..37
+    star@26..27 "*"
+    label_name@27..36
+      text@27..36 "ラベル"
+    newline@36..37 "\n"
+  eof@37..37 ""

@@ -1,0 +1,14 @@
+== scopes ==
+scope0 root 0..156
+== symbols ==
+sym0 label "menu" defs=[def0]
+== definitions ==
+def0 sym0 item1 name@1..5 full@0..6 scope0
+== uses ==
+use0 jump-target "menu" @20..26 item3 -> def0
+use1 jump-target "menu" @55..61 item5 -> def0
+use2 jump-target "away" @149..154 item9 -> external(storage="other.ks", target="*away")
+== places ==
+== embedded ==
+== errors ==
+sem-duplicate-param @103..116 :: duplicate parameter `storage` on this tag (the last value wins)

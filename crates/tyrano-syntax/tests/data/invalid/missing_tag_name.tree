@@ -1,0 +1,14 @@
+scenario@0..5
+  text_line@0..3
+    inline_tag@0..2
+      l_bracket@0..1 "["
+      tag_name@1..1
+        ident@1..1 "" (missing)
+      r_bracket@1..2 "]"
+    newline@2..3 "\n"
+  at_tag_line@3..5
+    at@3..4 "@"
+    tag_name@4..4
+      ident@4..4 "" (missing)
+    newline@4..5 "\n"
+  eof@5..5 ""

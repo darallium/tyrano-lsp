@@ -1,0 +1,2 @@
+data/scenario/main.ks:3:13: warning xsem-missing-asset: asset `nothere.jpg` not found under the `bgimage` roots
+data/scenario/main.ks:4:18: warning xsem-missing-asset: asset `theme.ogg` not found under the `bgm` roots

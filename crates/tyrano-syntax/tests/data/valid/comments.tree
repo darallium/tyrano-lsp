@@ -1,0 +1,16 @@
+scenario@0..51
+  comment_line@0..17
+    semicolon@0..1 ";"
+    comment_text@1..16 "コメント行"
+    newline@16..17 "\n"
+  block_comment@17..38
+    slash_star@17..19 "/*"
+    newline@19..20 "\n"
+    comment_text@20..34 "  隠しメモ"
+    newline@34..35 "\n"
+    star_slash@35..37 "*/"
+    newline@37..38 "\n"
+  text_line@38..51
+    text@38..50 "テキスト"
+    newline@50..51 "\n"
+  eof@51..51 ""

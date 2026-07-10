@@ -1,0 +1,1 @@
+E_LEX_UNTERMINATED_BLOCK_COMMENT Error @28..28 :: block comment is never closed; expected `*/`

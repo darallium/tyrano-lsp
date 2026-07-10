@@ -1,0 +1,12 @@
+== scopes ==
+scope0 root 0..60
+scope1 macro-body(def0 "greet") 18..51 parent=scope0
+== symbols ==
+sym0 macro "greet" defs=[def0]
+== definitions ==
+def0 sym0 item2 name@12..17 full@0..18 scope0
+== uses ==
+use0 macro-call "greet" @53..58 item8 -> def0
+== places ==
+== embedded ==
+== errors ==

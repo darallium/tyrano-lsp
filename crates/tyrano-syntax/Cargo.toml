@@ -1,0 +1,10 @@
+[package]
+name = "tyrano-syntax"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[dev-dependencies]
+tyrano-lexer = { path = "../tyrano-lexer" }
+tyrano-parser-generator = { path = "../tyrano-parser-generator" }

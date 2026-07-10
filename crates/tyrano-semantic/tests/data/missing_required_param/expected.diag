@@ -1,0 +1,3 @@
+data/scenario/main.ks:2:2: error xsem-missing-param: `[image]` is missing its required `storage=` parameter
+data/scenario/main.ks:3:2: error xsem-missing-param: `[wait]` is missing its required `time=` parameter
+data/scenario/main.ks:4:2: error xsem-missing-param: `[eval]` is missing its required `exp=` parameter

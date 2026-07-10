@@ -1,0 +1,18 @@
+scenario@0..38
+  text_line@0..28
+    text@0..12 "テキスト"
+    inline_tag@12..27
+      l_bracket@12..13 "["
+      tag_name@13..19
+        ident@13..18 "ptext" trail(whitespace@18..19)
+      param@19..27
+        ident@19..23 "text"
+        eq@23..24 "="
+        param_value@24..27
+          text@24..27 "abc"
+      r_bracket@27..27 "" (missing)
+    newline@27..28 "\n"
+  text_line@28..38
+    text@28..37 "次の行"
+    newline@37..38 "\n"
+  eof@38..38 ""

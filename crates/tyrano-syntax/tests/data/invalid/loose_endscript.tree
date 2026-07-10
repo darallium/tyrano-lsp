@@ -1,0 +1,19 @@
+scenario@0..35
+  iscript_block@0..10
+    inline_tag@0..9
+      l_bracket@0..1 "["
+      tag_name@1..8
+        ident@1..8 "iscript"
+      r_bracket@8..9 "]"
+    newline@9..10 "\n"
+  text_line@10..31
+    text@10..30 "var s = \"endscript\";"
+    newline@30..31 "\n"
+  text_line@31..35
+    inline_tag@31..34
+      l_bracket@31..32 "["
+      tag_name@32..33
+        ident@32..33 "s"
+      r_bracket@33..34 "]"
+    newline@34..35 "\n"
+  eof@35..35 ""

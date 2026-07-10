@@ -1,0 +1,12 @@
+[package]
+name = "tyrano-semantic"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+salsa = "0.27"
+tyrano-db = { path = "../tyrano-db" }
+tyrano-module-resolver = { path = "../tyrano-module-resolver" }
+tyrano-parser-core = { path = "../tyrano-parser-core" }
+tyrano-project = { path = "../tyrano-project" }
+tyrano-syntax = { path = "../tyrano-syntax" }

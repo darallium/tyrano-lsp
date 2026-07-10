@@ -1,0 +1,163 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "TyranoScript",
+  "scopeName": "source.tyranoscript",
+  "patterns": [
+    { "include": "#comment-block" },
+    { "include": "#comment-line" },
+    { "include": "#iscript-block" },
+    { "include": "#html-block" },
+    { "include": "#label-line" },
+    { "include": "#character-line" },
+    { "include": "#at-tag-line" },
+    { "include": "#inline-tag" }
+  ],
+  "repository": {
+    "comment-line": {
+      "match": "^(\\s*)(;)(.*)$",
+      "captures": {
+        "2": { "name": "punctuation.definition.comment.tyranoscript" },
+        "3": { "name": "comment.line.semicolon.tyranoscript" }
+      }
+    },
+    "comment-block": {
+      "begin": "^(\\s*)(/\\*)\\s*$",
+      "beginCaptures": {
+        "2": { "name": "punctuation.definition.comment.begin.tyranoscript" }
+      },
+      "end": "^(\\s*)(\\*/)\\s*$",
+      "endCaptures": {
+        "2": { "name": "punctuation.definition.comment.end.tyranoscript" }
+      },
+      "name": "comment.block.tyranoscript"
+    },
+    "label-line": {
+      "match": "^(\\s*)(\\*)([^|]*)(?:(\\|)(.*))?$",
+      "captures": {
+        "2": { "name": "punctuation.definition.entity.tyranoscript" },
+        "3": { "name": "entity.name.function.label.tyranoscript" },
+        "4": { "name": "punctuation.separator.tyranoscript" },
+        "5": { "name": "string.unquoted.label-value.tyranoscript" }
+      }
+    },
+    "character-line": {
+      "match": "^(\\s*)(#)([^:]*)(?:(:)(.*))?$",
+      "captures": {
+        "2": { "name": "punctuation.definition.entity.tyranoscript" },
+        "3": { "name": "entity.name.type.character.tyranoscript" },
+        "4": { "name": "punctuation.separator.tyranoscript" },
+        "5": { "name": "variable.parameter.face.tyranoscript" }
+      }
+    },
+    "iscript-block": {
+      "begin": "^(\\s*)(\\[)(iscript)(\\])",
+      "beginCaptures": {
+        "2": { "name": "punctuation.definition.tag.begin.tyranoscript" },
+        "3": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
+        "4": { "name": "punctuation.definition.tag.end.tyranoscript" }
+      },
+      "end": "^(\\s*)(\\[)(endscript)(\\])",
+      "endCaptures": {
+        "2": { "name": "punctuation.definition.tag.begin.tyranoscript" },
+        "3": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
+        "4": { "name": "punctuation.definition.tag.end.tyranoscript" }
+      },
+      "contentName": "meta.embedded.block.javascript",
+      "patterns": [
+        { "include": "source.js" }
+      ]
+    },
+    "html-block": {
+      "begin": "^(\\s*)(\\[)(html)(\\])",
+      "beginCaptures": {
+        "2": { "name": "punctuation.definition.tag.begin.tyranoscript" },
+        "3": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
+        "4": { "name": "punctuation.definition.tag.end.tyranoscript" }
+      },
+      "end": "^(\\s*)(\\[)(endhtml)(\\])",
+      "endCaptures": {
+        "2": { "name": "punctuation.definition.tag.begin.tyranoscript" },
+        "3": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
+        "4": { "name": "punctuation.definition.tag.end.tyranoscript" }
+      },
+      "contentName": "meta.embedded.block.html",
+      "patterns": [
+        { "include": "text.html.basic" }
+      ]
+    },
+    "at-tag-line": {
+      "begin": "^(\\s*)(@)",
+      "beginCaptures": {
+        "2": { "name": "punctuation.definition.tag.tyranoscript" }
+      },
+      "end": "$",
+      "name": "meta.tag.at.tyranoscript",
+      "patterns": [
+        { "include": "#tag-name" },
+        { "include": "#tag-params" }
+      ]
+    },
+    "inline-tag": {
+      "begin": "(\\[)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.tyranoscript" }
+      },
+      "end": "(\\])",
+      "endCaptures": {
+        "1": { "name": "punctuation.definition.tag.end.tyranoscript" }
+      },
+      "name": "meta.tag.inline.tyranoscript",
+      "patterns": [
+        { "include": "#tag-name" },
+        { "include": "#tag-params" }
+      ]
+    },
+    "tag-name": {
+      "match": "\\G\\s*([^\\s\\]]+)",
+      "captures": {
+        "1": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" }
+      }
+    },
+    "tag-params": {
+      "patterns": [
+        {
+          "match": "([^\\s=\\]]+)\\s*(=)",
+          "captures": {
+            "1": { "name": "variable.parameter.tyranoscript" },
+            "2": { "name": "keyword.operator.assignment.tyranoscript" }
+          }
+        },
+        { "include": "#dq-string" },
+        { "include": "#sq-string" },
+        {
+          "match": "&[^\\s\\]]+",
+          "name": "variable.other.entity.tyranoscript"
+        },
+        {
+          "match": "%[^\\s\\]]+",
+          "name": "variable.other.paramref.tyranoscript"
+        },
+        {
+          "match": "[^\\s\\]]+",
+          "name": "string.unquoted.tyranoscript"
+        }
+      ]
+    },
+    "dq-string": {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.tyranoscript",
+      "patterns": [
+        { "match": "\\\\.", "name": "constant.character.escape.tyranoscript" }
+      ]
+    },
+    "sq-string": {
+      "begin": "'",
+      "end": "'",
+      "name": "string.quoted.single.tyranoscript",
+      "patterns": [
+        { "match": "\\\\.", "name": "constant.character.escape.tyranoscript" }
+      ]
+    }
+  }
+}

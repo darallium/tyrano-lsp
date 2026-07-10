@@ -1,0 +1,14 @@
+== scopes ==
+scope0 root 0..61
+== symbols ==
+sym0 label "start" defs=[def0, def2]
+sym1 label "middle" defs=[def1]
+== definitions ==
+def0 sym0 item1 name@1..6 full@0..14 scope0
+def1 sym1 item3 name@29..35 full@28..36 scope0
+def2 sym0 item5 name@51..56 full@50..61 scope0
+== uses ==
+== places ==
+== embedded ==
+== errors ==
+sem-duplicate-label @51..56 :: duplicate label `start` (first defined earlier)

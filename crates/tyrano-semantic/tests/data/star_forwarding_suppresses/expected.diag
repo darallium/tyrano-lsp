@@ -1,0 +1,1 @@
+data/scenario/main.ks:8:2: error xsem-missing-param: `[image]` is missing its required `storage=` parameter

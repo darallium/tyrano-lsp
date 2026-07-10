@@ -1,0 +1,7 @@
+[package]
+name = "tyrano-parser"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tyrano-lexer = { path = "../tyrano-lexer" }

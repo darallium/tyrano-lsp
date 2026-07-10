@@ -1,0 +1,2 @@
+E_PARSE_EXPECTED_TAG_NAME Error @1..1 :: expected a tag name
+E_PARSE_EXPECTED_TAG_NAME Error @4..4 :: expected a tag name

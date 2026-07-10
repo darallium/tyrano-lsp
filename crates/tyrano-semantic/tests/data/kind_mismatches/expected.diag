@@ -1,0 +1,3 @@
+data/scenario/main.ks:2:12: error xsem-kind-mismatch: `time=` expects a number, got `abc`
+data/scenario/main.ks:3:30: error xsem-kind-mismatch: `visible=` expects `true` or `false`, got `maybe`
+data/scenario/main.ks:4:14: error xsem-kind-mismatch: `target=` expects a `*label` reference, got `start`

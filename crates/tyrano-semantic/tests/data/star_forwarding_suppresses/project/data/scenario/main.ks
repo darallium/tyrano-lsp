@@ -1,0 +1,13 @@
+[macro name=show_img]
+[image *]
+[endmacro]
+[macro name=show2]
+[image storage=%img layer=0]
+[endmacro]
+[macro name=bad]
+[image layer=0]
+[endmacro]
+*start
+[show_img storage=ok.png]
+[show2 img=ok.png]
+[bad]

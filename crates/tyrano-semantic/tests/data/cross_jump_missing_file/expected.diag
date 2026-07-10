@@ -1,0 +1,2 @@
+data/scenario/first.ks:2:30: error xsem-unknown-storage: scenario file `gone.ks` not found
+data/scenario/first.ks:3:1: error xsem-unknown-storage: scenario file `sub/also_gone` not found

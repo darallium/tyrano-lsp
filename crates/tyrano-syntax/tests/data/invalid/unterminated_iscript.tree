@@ -1,0 +1,11 @@
+scenario@0..21
+  iscript_block@0..21
+    inline_tag@0..9
+      l_bracket@0..1 "["
+      tag_name@1..8
+        ident@1..8 "iscript"
+      r_bracket@8..9 "]"
+    newline@9..10 "\n"
+    script_text@10..20 "var a = 1;"
+    newline@20..21 "\n"
+  eof@21..21 ""

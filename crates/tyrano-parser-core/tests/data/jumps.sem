@@ -1,0 +1,15 @@
+== scopes ==
+scope0 root 0..127
+== symbols ==
+sym0 label "label" defs=[def0]
+== definitions ==
+def0 sym0 item1 name@1..6 full@0..7 scope0
+== uses ==
+use0 jump-target "label" @20..26 item3 -> def0
+use1 jump-target "label" @41..47 item4 -> def0
+use2 jump-target "missing" @61..69 item6 -> unknown
+use3 jump-target "foo" @101..105 item8 -> external(storage="other.ks", target="*foo")
+== places ==
+== embedded ==
+== errors ==
+sem-unknown-label-target @61..69 :: unknown label `missing` in this file
