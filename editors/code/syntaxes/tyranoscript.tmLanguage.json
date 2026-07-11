@@ -50,17 +50,25 @@
       }
     },
     "iscript-block": {
-      "begin": "^(\\s*)(\\[)(iscript)(\\])",
+      "begin": "(?:(?<!\\\\)(\\[)\\s*(iscript)(?=[\\s\\]]|$)((?:[^\\]\\\\\"'`]|\\\\.|\"(?:[^\"\\\\]|\\\\.)*\"?|'(?:[^'\\\\]|\\\\.)*'?|`(?:[^`\\\\]|\\\\.)*`?)*)(\\])?|^(\\s*)(@)\\s*(iscript)(?=\\s|$)(.*)$)",
       "beginCaptures": {
-        "2": { "name": "punctuation.definition.tag.begin.tyranoscript" },
-        "3": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
-        "4": { "name": "punctuation.definition.tag.end.tyranoscript" }
+        "1": { "name": "punctuation.definition.tag.begin.tyranoscript" },
+        "2": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
+        "3": { "patterns": [{ "include": "#tag-params" }] },
+        "4": { "name": "punctuation.definition.tag.end.tyranoscript" },
+        "6": { "name": "punctuation.definition.tag.tyranoscript" },
+        "7": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
+        "8": { "patterns": [{ "include": "#tag-params" }] }
       },
-      "end": "^(\\s*)(\\[)(endscript)(\\])",
+      "end": "^(\\s*)(?:(\\[)\\s*(endscript)(?=[\\s\\]])((?:[^\\]\\\\\"'`]|\\\\.|\"(?:[^\"\\\\]|\\\\.)*\"?|'(?:[^'\\\\]|\\\\.)*'?|`(?:[^`\\\\]|\\\\.)*`?)*)(\\])?|(@)\\s*(endscript)(?=\\s|$)(.*)$)",
       "endCaptures": {
         "2": { "name": "punctuation.definition.tag.begin.tyranoscript" },
         "3": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
-        "4": { "name": "punctuation.definition.tag.end.tyranoscript" }
+        "4": { "patterns": [{ "include": "#tag-params" }] },
+        "5": { "name": "punctuation.definition.tag.end.tyranoscript" },
+        "6": { "name": "punctuation.definition.tag.tyranoscript" },
+        "7": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
+        "8": { "patterns": [{ "include": "#tag-params" }] }
       },
       "contentName": "meta.embedded.block.javascript",
       "patterns": [
@@ -68,17 +76,25 @@
       ]
     },
     "html-block": {
-      "begin": "^(\\s*)(\\[)(html)(\\])",
+      "begin": "(?:(?<!\\\\)(\\[)\\s*(html)(?=[\\s\\]]|$)((?:[^\\]\\\\\"'`]|\\\\.|\"(?:[^\"\\\\]|\\\\.)*\"?|'(?:[^'\\\\]|\\\\.)*'?|`(?:[^`\\\\]|\\\\.)*`?)*)(\\])?|^(\\s*)(@)\\s*(html)(?=\\s|$)(.*)$)",
       "beginCaptures": {
-        "2": { "name": "punctuation.definition.tag.begin.tyranoscript" },
-        "3": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
-        "4": { "name": "punctuation.definition.tag.end.tyranoscript" }
+        "1": { "name": "punctuation.definition.tag.begin.tyranoscript" },
+        "2": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
+        "3": { "patterns": [{ "include": "#tag-params" }] },
+        "4": { "name": "punctuation.definition.tag.end.tyranoscript" },
+        "6": { "name": "punctuation.definition.tag.tyranoscript" },
+        "7": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
+        "8": { "patterns": [{ "include": "#tag-params" }] }
       },
-      "end": "^(\\s*)(\\[)(endhtml)(\\])",
+      "end": "^(\\s*)(?:(\\[)\\s*(endhtml)(?=[\\s\\]])((?:[^\\]\\\\\"'`]|\\\\.|\"(?:[^\"\\\\]|\\\\.)*\"?|'(?:[^'\\\\]|\\\\.)*'?|`(?:[^`\\\\]|\\\\.)*`?)*)(\\])?|(@)\\s*(endhtml)(?=\\s|$)(.*)$)",
       "endCaptures": {
         "2": { "name": "punctuation.definition.tag.begin.tyranoscript" },
         "3": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
-        "4": { "name": "punctuation.definition.tag.end.tyranoscript" }
+        "4": { "patterns": [{ "include": "#tag-params" }] },
+        "5": { "name": "punctuation.definition.tag.end.tyranoscript" },
+        "6": { "name": "punctuation.definition.tag.tyranoscript" },
+        "7": { "name": "entity.name.tag.tyranoscript keyword.control.tag.tyranoscript" },
+        "8": { "patterns": [{ "include": "#tag-params" }] }
       },
       "contentName": "meta.embedded.block.html",
       "patterns": [
@@ -98,11 +114,11 @@
       ]
     },
     "inline-tag": {
-      "begin": "(\\[)",
+      "begin": "(?<!\\\\)(\\[)",
       "beginCaptures": {
         "1": { "name": "punctuation.definition.tag.begin.tyranoscript" }
       },
-      "end": "(\\])",
+      "end": "(\\])|$",
       "endCaptures": {
         "1": { "name": "punctuation.definition.tag.end.tyranoscript" }
       },
@@ -120,6 +136,17 @@
     },
     "tag-params": {
       "patterns": [
+        { "include": "#dq-string" },
+        { "include": "#sq-string" },
+        { "include": "#bt-string" },
+        {
+          "match": "&(?:[^\\s\\[\\]]|\\[[^\\]]*\\])*",
+          "name": "variable.other.entity.tyranoscript"
+        },
+        {
+          "match": "%(?:[^\\s\\[\\]]|\\[[^\\]]*\\])*",
+          "name": "variable.other.paramref.tyranoscript"
+        },
         {
           "match": "([^\\s=\\]]+)\\s*(=)",
           "captures": {
@@ -127,25 +154,15 @@
             "2": { "name": "keyword.operator.assignment.tyranoscript" }
           }
         },
-        { "include": "#dq-string" },
-        { "include": "#sq-string" },
         {
-          "match": "&[^\\s\\]]+",
-          "name": "variable.other.entity.tyranoscript"
-        },
-        {
-          "match": "%[^\\s\\]]+",
-          "name": "variable.other.paramref.tyranoscript"
-        },
-        {
-          "match": "[^\\s\\]]+",
+          "match": "(?:[^\\s\\[\\]]|\\[[^\\]]*\\])+",
           "name": "string.unquoted.tyranoscript"
         }
       ]
     },
     "dq-string": {
       "begin": "\"",
-      "end": "\"",
+      "end": "\"|(?=\\]\\s*$)|$",
       "name": "string.quoted.double.tyranoscript",
       "patterns": [
         { "match": "\\\\.", "name": "constant.character.escape.tyranoscript" }
@@ -153,8 +170,16 @@
     },
     "sq-string": {
       "begin": "'",
-      "end": "'",
+      "end": "'|(?=\\]\\s*$)|$",
       "name": "string.quoted.single.tyranoscript",
+      "patterns": [
+        { "match": "\\\\.", "name": "constant.character.escape.tyranoscript" }
+      ]
+    },
+    "bt-string": {
+      "begin": "`",
+      "end": "`|(?=\\]\\s*$)|$",
+      "name": "string.quoted.other.backtick.tyranoscript",
       "patterns": [
         { "match": "\\\\.", "name": "constant.character.escape.tyranoscript" }
       ]
