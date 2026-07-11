@@ -13,7 +13,8 @@ import path from "node:path";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const serverPath = path.resolve(__dirname, "../../../target/release/tyrano-lsp");
+const serverExe = process.platform === "win32" ? "tyrano-lsp.exe" : "tyrano-lsp";
+const serverPath = path.resolve(__dirname, "../../../target/release", serverExe);
 const workspaceRoot = path.resolve(__dirname, "../testdata");
 const scenarioDir = path.join(workspaceRoot, "data", "scenario");
 const firstPath = path.join(scenarioDir, "first.ks");

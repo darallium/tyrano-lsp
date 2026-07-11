@@ -21,9 +21,10 @@ async function main() {
   // (among other places). The test workspace (testdata) has no target/ dir,
   // so the most robust option is to copy the prebuilt binary there before
   // launching. editors/code/server/ is git-ignored.
-  const builtBinary = path.resolve(__dirname, "../../../target/release/tyrano-lsp");
+  const exe = process.platform === "win32" ? "tyrano-lsp.exe" : "tyrano-lsp";
+  const builtBinary = path.resolve(__dirname, "../../../target/release", exe);
   const serverDir = path.resolve(__dirname, "../server");
-  const serverBinary = path.join(serverDir, "tyrano-lsp");
+  const serverBinary = path.join(serverDir, exe);
   mkdirSync(serverDir, { recursive: true });
   copyFileSync(builtBinary, serverBinary);
   chmodSync(serverBinary, 0o755);

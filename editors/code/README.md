@@ -1,143 +1,143 @@
-# TyranoScript for VS Code
+# TyranoScript LSP
 
-Language support for [TyranoScript](https://tyrano.jp/) (`.ks`) visual-novel
-scenario files, backed by the `tyrano-lsp` language server from this
-repository's Rust workspace.
+<p>
+  <a href="https://marketplace.visualstudio.com/items?itemName=darallium.tyranoscript-language-server"><img src="https://img.shields.io/visual-studio-marketplace/i/darallium.tyranoscript-language-server?style=flat-square&label=Installs&color=0078d7" alt="Installs"></a>
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License: MIT">
+</p>
 
-## Features
+日本語 ・ [English](https://github.com/darallium/tyrano-lsp/blob/master/editors/code/README.cn.md) ・ [中文](https://github.com/darallium/tyrano-lsp/blob/claude/vscode-extension-readme-hmishl/editors/code/README.cnmd)
 
-For TyranoScript projects with multi-file scenario semantics (labels, `[jump]`
-/ `[call]` targets across files, macros, and character/asset references) this
-extension provides, via the Language Server Protocol:
+ノベルゲームエンジン **[ティラノスクリプト](https://tyrano.jp/)**（`.ks` ファイル）のシナリオ執筆を支援する VS Code 拡張機能です。
+シンタックスハイライトに加え、Rust 製の言語サーバー **`tyrano-lsp`** による診断・補完・定義ジャンプ・参照検索を補助します。
 
-- Diagnostics (syntax errors, unresolved jump/call targets, unknown tags,
-  missing required parameters, missing assets)
-- Hover information for tags, parameters and labels
-- Completion for tag names, parameter names and values
-- Go to definition (labels, macros, jump/call storage targets)
-- Find references
-- Document symbols (labels, macros, tags) for outline / breadcrumb navigation
+![TyranoScript のシナリオファイルを VS Code で開いた様子](images/highlighting.png)
 
-Syntax highlighting is provided independently via a TextMate grammar, so
-`.ks` files are readable even before the language server has started
-(comments, labels, character lines, inline `[tag]` / `@tag` syntax, and
-embedded `[iscript]`/`[html]` blocks).
+---
 
-## Building the language server
+## 機能一覧
 
-The extension does not bundle the `tyrano-lsp` binary. Build it from the
-workspace root:
+| 機能 | 内容 |
+|------|------|
+| [シンタックスハイライト](#-シンタックスハイライト) | タグ・ラベル・コメント・埋め込み JS/HTML の色分け |
+| [リアルタイム診断](#-リアルタイム診断) | 未知タグ・未解決ジャンプ・素材欠落などを波線で通知 |
+| [ホバー情報](#-ホバー情報) | タグ・パラメータ・ラベルの説明をポップアップ表示 |
+| [入力補完](#-入力補完) | タグ名・パラメータ名・値の候補を提示 |
+| [定義へ移動 / 参照検索](#-定義へ移動--参照検索) | ファイルをまたいだラベル・マクロの追跡 |
+| [アウトライン / パンくず](#-アウトライン--パンくず) | ラベル・マクロ・キャラクターの一覧ナビゲーション |
 
-```sh
-cargo build --release -p tyrano-lsp
-```
+---
 
-This produces `target/release/tyrano-lsp` (or `target/debug/tyrano-lsp` for
-a debug build). The extension looks for the binary automatically — see
-below.
+### シンタックスハイライト
 
-## Configuring the server path
+`.ks` ファイルを開くと、ティラノスクリプトの文法により各要素が色分けされます。
+起動した瞬間から**即座に有効**になるため、シナリオを開いた瞬間から読みやすくなります。
 
-On activation the extension resolves the `tyrano-lsp` executable in this
-order:
+![シンタックスハイライトの例](images/highlighting.png)
 
-1. The `tyranoscript.server.path` setting, if non-empty.
-2. `tyrano-lsp` on your `PATH`.
-3. `<extension>/server/tyrano-lsp` (a bundled binary, if present).
-4. `<workspace>/target/release/tyrano-lsp`.
-5. `<workspace>/target/debug/tyrano-lsp`.
+ハイライトされる主な要素:
 
-If no executable can be found, the extension shows an error notification
-asking you to set `tyranoscript.server.path` to an absolute path, e.g. in
-`.vscode/settings.json`:
+- ラベル定義 — `*start|オープニング`
+- タグ — `[bg storage=room.jpg time=1000]`
+- 行頭コメント — `; ここはコメント`
+- キャラクター名行 — `#あかね` / `#あかね:happy`
+- `[iscript]` … `[endscript]` 内は **JavaScript としてハイライト可能**
+- `[html]` … `[endhtml]` 内は **HTML として**ハイライト
 
-```json
-{
-  "tyranoscript.server.path": "/absolute/path/to/tyrano-lsp"
-}
-```
+---
 
-Other settings:
+### リアルタイム診断
 
-- `tyranoscript.trace.server` (`off` | `messages` | `verbose`): traces
-  LSP communication in the "TyranoScript" output channel.
+入力・保存のたびにシナリオ全体を解析し、問題のある箇所に波線を表示します。
+`.ks` ファイル単体ではなく プロジェクト全体（複数ファイル） を横断して検証するため、別ファイルのラベルや素材まで含めてチェックできます。
 
-Use the **TyranoScript: Restart Language Server** command (from the Command
-Palette) after rebuilding the server or changing `tyranoscript.server.path`.
+![診断と「問題」パネルの例](images/diagnostics.png)
 
-## Building and packaging the extension
+検出できる問題の例:
 
-From `editors/code`:
+| 診断コード | 内容 |
+|-----------|------|
+| `xsem-unknown-tag` | ビルトインにも定義済みマクロにも無い**未知のタグ**（`[teleprot]` など綴り間違い） |
+| `sem-unknown-label-target` | 同一ファイル内に存在しない**ラベルへのジャンプ**（`target=*nowhere`） |
+| `xsem-unknown-label-in-storage` | **別ファイルに存在しないラベル**への `[jump]`（`storage=scene2.ks target=*missing`） |
+| `xsem-missing-asset` | `storage=` で指定した**画像・音声などの素材が見つからない** |
+| `xsem-unknown-param` / `xsem-missing-param` | タグに対する**未知のパラメータ**、または**必須パラメータの欠落** |
 
-```sh
-npm install
-npm run compile   # bundles src/extension.ts -> dist/extension.js
-npm run package   # produces tyranoscript-<version>.vsix via @vscode/vsce
-```
+問題は「問題（Problems）」パネル（`Ctrl+Shift+M`）に一覧表示され、クリックすると該当箇所へジャンプできます。
 
-Other scripts: `npm run typecheck` (type-checks without emitting) and
-`npm run watch` (esbuild in watch mode).
+---
 
-## Development workflow
+### ホバー情報
 
-1. `npm install` in `editors/code`.
-2. Build `tyrano-lsp` (see above), or set `tyranoscript.server.path`.
-3. Open `editors/code` in VS Code and press `F5` to launch an Extension
-   Development Host. This runs the `npm: compile` task first, then opens a
-   new window with the extension loaded.
-4. Open a folder containing `.ks` files (e.g. `editors/code/testdata`) in the
-   development host window to try it out.
-5. Use **Developer: Reload Window** in the development host to pick up
-   further TypeScript changes after re-running `npm run compile` (or leave
-   `npm run watch` running).
+タグ・パラメータ・ラベルにマウスカーソルを重ねる（またはカーソルを置いて `Ctrl+K Ctrl+I`）と、その要素の説明がポップアップ表示されます。
+とくに `[jump]` の飛び先ラベルにホバーすると、そのラベルがどのファイルで定義されているかまで解決して教えてくれます。
 
-## Test data
+![ジャンプ先ラベルにホバーした様子](images/hover.png)
 
-`editors/code/testdata` contains a minimal two-file TyranoScript project
-(`data/scenario/first.ks`, `data/scenario/scene2.ks`) exercising labels, a
-macro definition and call, an `[iscript]` block, and a cross-file `[jump]`,
-useful for manually exercising the grammar and the language server.
+上の例では `target=*top` にホバーすることで、`*top` が `data/scenario/scene2.ks` に定義されたラベルであることが一目で分かります。
 
-## Testing
+---
 
-Two end-to-end test layers live under `editors/code/test`, both driving the
-`testdata` fixture project against the real `tyrano-lsp` binary. Build the
-server first (`cargo build --release -p tyrano-lsp`), then from
-`editors/code`:
+### 入力補完
 
-### Layer 1 — protocol E2E (`npm run test:e2e`)
+タグ名・パラメータ名・パラメータ値の候補を自動で提示します。
+`[` を入力した直後や、入力途中で `Ctrl+Space` を押すと候補リストが開き、**各候補の説明**も右側に表示されます。
 
-`test/e2e-protocol.mjs` is a dependency-free Node script that spawns
-`../../../target/release/tyrano-lsp` and speaks raw LSP JSON-RPC (hand-rolled
-`Content-Length` framing) with `testdata` as the workspace root. It asserts,
-against the actual fixture files, that `initialize` advertises the hover
-provider, and that hover, go-to-definition, completion (tag names + the
-`greet` macro), find-references (spanning both files), document symbols and
-`publishDiagnostics` all return the expected results, then verifies a clean
-`shutdown`/`exit` with process exit code 0. All LSP positions are derived
-programmatically from the fixture text (UTF-16 code units), not hardcoded.
+![タグ名の補完候補](images/completion.png)
 
-```sh
-npm run test:e2e
-```
+- **タグ名補完** — `[cha` まで入力すると `chara_show` / `chara_new` / `chara_hide` … を提示
+- **パラメータ名補完** — そのタグが受け付けるパラメータのみを提示
+- `[macro name=greet]` で定義したマクロも `[greet]` として補完されます
 
-### Layer 2 — VS Code integration (`npm run test:integration`)
+---
 
-`test/runTest.mjs` uses `@vscode/test-electron` to download a throwaway VS
-Code, copy the built server binary to `editors/code/server/tyrano-lsp` (so the
-extension's `<extension>/server/tyrano-lsp` lookup finds it — `server/` is
-git-ignored), and launch the extension host against `testdata`. The suite
-(`test/suite.js`, loaded by VS Code as CommonJS) activates the extension and
-exercises the hover, definition, completion, document-symbol and diagnostics
-providers via `vscode.commands.executeCommand`, including breaking a `[jump]`
-target to confirm a diagnostic appears.
+### 定義へ移動
 
-This test needs a display; run it headlessly with `xvfb-run`:
+ラベルやマクロの上で 定義へ移動（`F12`）・その場でのぞき見（`Alt+F12`）・参照を検索（`Shift+F12`）が使えます。
+`storage=` で別ファイルを指定したジャンプも解決されるため、ファイルをまたいでシナリオの流れを追跡できます。
 
-```sh
-xvfb-run -a node test/runTest.mjs   # or: xvfb-run -a npm run test:integration
-```
+![別ファイルのラベル定義を Peek 表示した様子](images/definition.png)
 
-It downloads VS Code from `update.code.visualstudio.com` on first run, so it
-requires network access to that host (some sandboxed/CI egress policies block
-it).
+上の例では、`first.ks` の `[jump storage=scene2.ks target=*top]` から `*top` の定義を辿り、`scene2.ks` の該当行をその場に展開しています。
+
+---
+
+### アウトライン
+
+ファイル内の **ラベル・マクロ・キャラクター** が構造化され、サイドバーの「アウトライン」ビューと、
+現在のファイル内位置についてはエディタ上部の「パンくず（breadcrumbs）」に一覧表示されます。
+長いシナリオでも、目的のラベルへワンクリックで移動できます。
+
+![アウトラインビューに表示されたラベル・マクロ・キャラクター](images/outline.png)
+
+`Ctrl+Shift+O` でシンボル検索を開けば、ラベル名を入力して素早くジャンプすることも可能です。
+
+---
+
+### 設定項目
+
+| 設定キー | 既定値 | 説明 |
+|---------|--------|------|
+| `tyranoscript.server.path` | `""` | `tyrano-lsp` 実行ファイルの絶対パス。空の場合は自動検出します。 |
+| `tyranoscript.trace.server` | `off` | VS Code と言語サーバー間の通信ログレベル（`off` / `messages` / `verbose`）。不具合報告時に便利です。 |
+
+---
+
+## バグ報告・機能要望
+
+不具合の報告や機能追加のご要望は、[GitHub の Issue](https://github.com/darallium/tyrano-lsp/issues) か、[Google Form](https://forms.gle/TeTvpCWH98CRFPUL9)までお寄せください。
+`tyranoscript.trace.server` を `verbose` に設定して得られる通信ログを添えていただけると、調査がスムーズです。
+
+---
+
+## 開発の応援・寄付のお願い
+
+この拡張機能と言語サーバーは個人開発による無償のプロジェクトです。
+もし開発の助けになったと感じていただけたら、下記のリンクから応援していただけると励みになります。
+
+<a data-ofuse-widget-button href="https://ofuse.me/o?uid=101132" data-ofuse-id="101132" data-ofuse-size="large" data-ofuse-color="pink" data-ofuse-style="rectangle">OFUSEで応援を送る</a><script async src="https://ofuse.me/assets/platform/widget.js" charset="utf-8"></script>
+
+---
+
+## ライセンス
+
+[MIT License](LICENSE) の下で公開されています。

@@ -1,9 +1,10 @@
 {
-  "name": "tyranoscript",
-  "displayName": "TyranoScript",
-  "description": "Language support for TyranoScript (.ks) visual-novel scenario files: diagnostics, hover, completion, go-to-definition, references and document symbols, powered by the tyrano-lsp language server.",
+  "name": "tyranoscript-language-server",
+  "description": "A language server for TyranoScript",
+  "displayName": "Tyranoscript-LSP",
+  "description": "Language support for TyranoScript (.ks) visual-novel scenario files, powered by the tyrano-lsp language server.",
   "publisher": "darallium",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "license": "MIT",
   "private": false,
   "repository": {

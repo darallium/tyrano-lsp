@@ -1,0 +1,252 @@
+# Manually-dispatched distribution build for the TyranoScript VSCode
+# extension (editors/code) + the tyrano-lsp language server.
+#
+# Produces one platform-specific .vsix per target with the release-built
+# server binary bundled at <extension>/server/, plus a "universal" .vsix
+# without a bundled server (users point tyranoscript.server.path at their
+# own binary). Every package is gated on the server test suite.
+# Platform-specific packages are also gated on the protocol-level E2E
+# test against the real binary and (on linux-x64) a headless real-VSCode
+# integration test.
+#
+# Optionally pass `release_tag` to publish all artifacts to a GitHub
+# Release under that tag. Set `publish_marketplace` to publish the
+# generated VSIX files to the VS Code Marketplace.
+
+name: Release VSCode Extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: >-
+          Git tag for a GitHub Release to create and attach the .vsix
+          files to (e.g. vscode-v0.1.0). Leave empty to only upload
+          workflow artifacts.
+        required: false
+        default: ""
+      publish_marketplace:
+        description: Publish the generated VSIX files to VS Code Marketplace
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  validate-release-tag:
+    name: Validate release tag
+    if: ${{ inputs.release_tag != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check release tag matches package version
+        working-directory: editors/code
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          EXPECTED_TAG="vscode-v${VERSION}"
+          if [ "${{ inputs.release_tag }}" != "${EXPECTED_TAG}" ]; then
+            echo "release_tag must be ${EXPECTED_TAG} for package.json version ${VERSION}" >&2
+            exit 1
+          fi
+
+  test-server:
+    name: Test language server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - run: cargo test -p tyrano-lsp
+
+  package:
+    name: package (${{ matrix.vsce-target }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            vsce-target: linux-x64
+            integration: true
+          - os: ubuntu-24.04-arm
+            vsce-target: linux-arm64
+            integration: true
+          - os: windows-latest
+            vsce-target: win32-x64
+            integration: true
+          # temporalily disabled: doesn't fetch workers
+          #- os: macos-13
+          #  vsce-target: darwin-x64
+          - os: macos-latest
+            vsce-target: darwin-arm64
+            integration: true
+    needs: test-server
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build language server (release)
+        run: cargo build --release -p tyrano-lsp
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: editors/code/package-lock.json
+
+      - name: Install extension dependencies
+        working-directory: editors/code
+        run: npm ci
+
+      - name: Typecheck and bundle extension
+        working-directory: editors/code
+        run: |
+          npm run typecheck
+          npm run compile
+
+      - name: Protocol E2E test (real binary over stdio)
+        working-directory: editors/code
+        run: npm run test:e2e
+
+      - name: VSCode integration test (headless)
+        if: matrix.integration == true
+        working-directory: editors/code
+        shell: bash
+        run: |
+          mkdir -p server
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp ../../target/release/tyrano-lsp.exe server/
+          else
+            cp ../../target/release/tyrano-lsp server/
+            chmod +x server/tyrano-lsp
+          fi
+
+      - name: Package platform VSIX
+        working-directory: editors/code
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          npx @vscode/vsce package --target ${{ matrix.vsce-target }} \
+            -o "tyranoscript-${VERSION}-${{ matrix.vsce-target }}.vsix"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix-${{ matrix.vsce-target }}
+          path: editors/code/*.vsix
+          if-no-files-found: error
+
+  package-universal:
+    name: package (universal, no bundled server)
+    needs: test-server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: editors/code/package-lock.json
+
+      - name: Install extension dependencies
+        working-directory: editors/code
+        run: npm ci
+
+      - name: Typecheck and bundle extension
+        working-directory: editors/code
+        run: |
+          npm run typecheck
+          npm run compile
+
+      - name: Package universal VSIX
+        working-directory: editors/code
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          npx @vscode/vsce package -o "tyranoscript-${VERSION}-universal.vsix"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix-universal
+          path: editors/code/*.vsix
+          if-no-files-found: error
+
+  release:
+    name: GitHub Release
+    if: ${{ inputs.release_tag != '' }}
+    needs: [validate-release-tag, package, package-universal]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          files: dist/*.vsix
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+  publish-marketplace:
+    name: Publish to VS Code Marketplace
+    if: ${{ inputs.publish_marketplace }}
+    needs: [package, package-universal]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: List packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          find dist -maxdepth 1 -type f -name '*.vsix' -print
+
+      - name: Publish VSIX packages
+        shell: bash
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${VSCE_PAT}" ]; then
+            echo "VSCE_PAT secret is required to publish to the VS Code Marketplace" >&2
+            exit 1
+          fi
+
+          mapfile -t packages < <(
+            find dist -maxdepth 1 -type f -name '*.vsix' -print | sort
+          )
+
+          if [ "${#packages[@]}" -eq 0 ]; then
+            echo "No VSIX packages found" >&2
+            exit 1
+          fi
+
+          for package in "${packages[@]}"; do
+            echo "Publishing ${package}"
+            npx --yes @vscode/vsce@3.6.0 publish \
+              --packagePath "${package}" \
+              --skip-duplicate
+          done
+
