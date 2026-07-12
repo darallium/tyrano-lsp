@@ -10,6 +10,6 @@ mod builtin;
 mod kind;
 mod schema;
 
-pub use builtin::BUILTIN_TAGS;
+pub use builtin::{BUILTIN_TAG_GROUPS, builtin_tags};
 pub use kind::ValueKind;
 pub use schema::{ExtraParams, GLOBAL_PARAMS, ParamSpec, TagRegistry, TagSpec, builtin_registry};

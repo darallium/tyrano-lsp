@@ -1,0 +1,5 @@
+data/scenario/main.ks:12:14: error xsem-kind-mismatch: `type=` expects one of alert, confirm, input, got `bogus`
+data/scenario/main.ks:13:14: error xsem-kind-mismatch: `effect=` expects one of fadeIn, fadeInDownBig, fadeInLeftBig, fadeInRightBig, fadeInUpBig, flipInX, flipInY, lightSpeedIn, rotateIn, rotateInDownLeft, rotateInDownRight, rotateInUpLeft, rotateInUpRight, zoomIn, zoomInDown, zoomInLeft, zoomInRight, zoomInUp, slideInDown, slideInLeft, slideInRight, slideInUp, bounceIn, bounceInDown, bounceInLeft, bounceInRight, bounceInUp, rollIn, got `flyIn`
+data/scenario/main.ks:14:2: error xsem-missing-param: `[quake]` is missing its required `time=` parameter
+data/scenario/main.ks:15:15: error xsem-kind-mismatch: `buf=` expects a number, got `abc`
+data/scenario/main.ks:16:11: warning xsem-unknown-param: unknown parameter `typo_param` on `[pausebgm]`

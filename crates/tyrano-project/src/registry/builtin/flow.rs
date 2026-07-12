@@ -1,0 +1,116 @@
+//! Control-flow and navigation tags: jumps, calls, links, buttons,
+//! conditionals, macros, script blocks, waits, and skip/auto control.
+
+use super::{ExtraParams::{Allow, Deny}, TagSpec, opt, optd, req, tag};
+use super::ValueKind::{Asset, Boolean, Color, Expression, Label, Number, Scenario, Text};
+use crate::project::AssetKind;
+
+pub(super) const TAGS: &[TagSpec] = &[
+    tag(
+        "jump",
+        &[opt("storage", Scenario), opt("target", Label), optd("countpage", Boolean, "true")],
+        Deny,
+        "jump to a label, optionally in another scenario file",
+    ),
+    tag(
+        "call",
+        &[opt("storage", Scenario), opt("target", Label), optd("countpage", Boolean, "true"), optd("auto_next", Text, "yes")],
+        Deny,
+        "call a subroutine label; [return] comes back",
+    ),
+    tag(
+        "link",
+        &[opt("storage", Scenario), opt("target", Label)],
+        Allow,
+        "begin a text hyperlink to a label",
+    ),
+    tag("endlink", &[], Deny, "end a [link] region"),
+    tag(
+        "button",
+        &[opt("graphic", Asset(AssetKind::Image)), opt("storage", Scenario), opt("target", Label), opt("x", Number), opt("y", Number)],
+        Allow,
+        "place a graphical jump button",
+    ),
+    tag(
+        "glink",
+        &[opt("storage", Scenario), opt("target", Label), opt("text", Text), opt("x", Number), opt("y", Number)],
+        Allow,
+        "place a styled text link button",
+    ),
+    tag(
+        "clickable",
+        &[req("width", Number), req("height", Number), opt("storage", Scenario), opt("target", Label), opt("x", Number), opt("y", Number)],
+        Allow,
+        "place an invisible clickable jump area",
+    ),
+    tag("s", &[], Deny, "stop scenario progression and wait for input"),
+    tag("return", &[], Deny, "return from a [call]"),
+    tag("macro", &[req("name", Text)], Deny, "begin a macro definition"),
+    tag("endmacro", &[], Deny, "end a macro definition"),
+    tag("if", &[req("exp", Expression)], Deny, "begin a conditional block"),
+    tag("elsif", &[req("exp", Expression)], Deny, "else-if branch of an [if] block"),
+    tag("else", &[opt("exp", Expression)], Deny, "else branch of an [if] block"),
+    tag("endif", &[], Deny, "end an [if] block"),
+    tag("iscript", &[], Deny, "begin an embedded JavaScript block"),
+    tag("endscript", &[optd("stop", Boolean, "false")], Deny, "end an embedded JavaScript block"),
+    tag("eval", &[req("exp", Expression), optd("next", Boolean, "true")], Deny, "evaluate a JavaScript expression"),
+    tag("wait", &[req("time", Number)], Deny, "pause the scenario for a duration"),
+    tag("wait_cancel", &[], Deny, "cancel an active [wait]"),
+    tag("_s", &[], Deny, "internal stop variant of [s]"),
+    tag(
+        "label",
+        &[optd("nextorder", Boolean, "true")],
+        Deny,
+        "define a scenario label / page boundary",
+    ),
+    tag(
+        "config_record_label",
+        &[opt("color", Color), opt("skip", Boolean)],
+        Deny,
+        "configure already-read text management",
+    ),
+    tag("glink_config", &[], Allow, "configure automatic [glink] placement"),
+    tag(
+        "emb",
+        &[req("exp", Expression)],
+        Deny,
+        "embed a JavaScript expression result into the text",
+    ),
+    tag(
+        "ignore",
+        &[req("exp", Expression)],
+        Deny,
+        "skip scenario up to [endignore] while exp is true",
+    ),
+    tag("endignore", &[], Deny, "end an [ignore] region"),
+    tag("erasemacro", &[req("name", Text)], Deny, "delete a registered macro"),
+    tag("skipstart", &[], Deny, "start skip mode"),
+    tag("skipstop", &[], Deny, "stop skip mode"),
+    tag("cancelskip", &[], Deny, "cancel skip mode"),
+    tag("autostart", &[], Deny, "start auto mode"),
+    tag(
+        "autostop",
+        &[optd("next", Boolean, "true")],
+        Deny,
+        "stop auto mode",
+    ),
+    tag(
+        "autoconfig",
+        &[opt("speed", Number), opt("clickstop", Boolean)],
+        Deny,
+        "configure auto mode",
+    ),
+    tag("checkpoint", &[req("name", Text)], Deny, "register a rollback checkpoint"),
+    tag(
+        "clear_checkpoint",
+        &[opt("name", Text)],
+        Deny,
+        "delete a checkpoint (all when name omitted)",
+    ),
+    tag(
+        "rollback",
+        &[req("checkpoint", Text), optd("variable_over", Boolean, "true"), optd("bgm_over", Boolean, "false")],
+        Deny,
+        "roll back to a registered checkpoint",
+    ),
+];
