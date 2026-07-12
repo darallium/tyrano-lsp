@@ -11,7 +11,7 @@
 Language support for the visual-novel engine **[TyranoScript](https://tyrano.jp/)** (`.ks` scenario files) in VS Code.
 On top of syntax highlighting, the Rust-based language server **`tyrano-lsp`** brings full "IDE" features — diagnostics, completion, go-to-definition and find-references — to your `.ks` files.
 
-![A TyranoScript scenario file opened in VS Code](images/highlighting.png)
+![A TyranoScript scenario file opened in VS Code](/editors/code/images/highlighting.png)
 
 ---
 
@@ -43,7 +43,7 @@ On top of syntax highlighting, the Rust-based language server **`tyrano-lsp`** b
 Opening a `.ks` file colorizes every element via a TextMate grammar dedicated to TyranoScript.
 It is available **from the extension alone**, without waiting for the language server to start, so scenarios are readable the moment you open them.
 
-![Syntax highlighting example](images/highlighting.png)
+![Syntax highlighting example](/editors/code/images/highlighting.png)
 
 Highlighted elements include:
 
@@ -60,7 +60,7 @@ Highlighted elements include:
 Every edit and save re-analyzes the whole scenario and underlines problems with **squiggles**.
 Analysis spans the **entire project (multiple files)**, so labels in other files and assets under `data/` are validated too — not just the current file.
 
-![Diagnostics and the Problems panel](images/diagnostics.png)
+![Diagnostics and the Problems panel](/editors/code/images/diagnostics.png)
 
 Examples of what it detects:
 
@@ -81,7 +81,7 @@ All problems appear in the **Problems** panel (`Ctrl+Shift+M`); clicking one jum
 Hover the mouse over a tag, parameter or label (or place the cursor and press `Ctrl+K Ctrl+I`) to see a documentation popup.
 In particular, hovering a `[jump]` target label resolves **which file the label is defined in**.
 
-![Hovering a jump target label](images/hover.png)
+![Hovering a jump target label](/editors/code/images/hover.png)
 
 In the example above, hovering `target=*top` reveals at a glance that `*top` is a label defined in `data/scenario/scene2.ks`.
 
@@ -92,7 +92,7 @@ In the example above, hovering `target=*top` reveals at a glance that `*top` is 
 Tag names, parameter names and parameter values are suggested automatically.
 Right after typing `[`, or by pressing `Ctrl+Space` mid-word, a candidate list opens — with **per-item documentation** shown on the side.
 
-![Tag-name completion](images/completion.png)
+![Tag-name completion](/editors/code/images/completion.png)
 
 - **Tag-name completion** — typing `[cha` suggests `chara_show` / `chara_new` / `chara_hide` …
 - **Parameter-name completion** — only the parameters that tag accepts
@@ -105,7 +105,7 @@ Right after typing `[`, or by pressing `Ctrl+Space` mid-word, a candidate list o
 On any label or macro you can use **Go to Definition** (`F12`), **Peek** (`Alt+F12`) and **Find All References** (`Shift+F12`).
 Jumps that point to another file via `storage=` are resolved, so you can **follow the scenario flow across files**.
 
-![Peeking a label definition in another file](images/definition.png)
+![Peeking a label definition in another file](/editors/code/images/definition.png)
 
 Above, we follow `*top` from `[jump storage=scene2.ks target=*top]` in `first.ks` and see the defining line in `scene2.ks` expanded inline.
 
@@ -116,7 +116,7 @@ Above, we follow `*top` from `[jump storage=scene2.ks target=*top]` in `first.ks
 The **labels, macros and characters** in a file are structured and listed in the sidebar's Outline view and in the editor's breadcrumbs.
 Even in long scenarios, you can jump to any label with a single click.
 
-![Outline view showing labels, macros and characters](images/outline.png)
+![Outline view showing labels, macros and characters](/editors/code/images/outline.png)
 
 Press `Ctrl+Shift+O` to open symbol search and jump quickly by typing a label name.
 
@@ -140,7 +140,7 @@ Diagnostics, hover, completion and go-to-definition require the Rust-based langu
 4. `<workspace>/target/release/tyrano-lsp`
 5. `<workspace>/target/debug/tyrano-lsp`
 
-To build from source, clone the [repository](https://github.com/darallium/tyrano-parser) and run:
+To build from source, clone the [repository](https://github.com/darallium/tyrano-lsp) and run:
 
 ```bash
 cargo build --release -p tyrano-lsp
@@ -178,7 +178,7 @@ Then place the resulting `target/release/tyrano-lsp` in one of the locations abo
 
 ## 🐛 Bug reports & feature requests
 
-Please file bugs and feature requests on the [GitHub Issues](https://github.com/darallium/tyrano-parser/issues) page.
+Please file bugs and feature requests on the [GitHub Issues](https://github.com/darallium/tyrano-lsp/issues) page.
 Attaching the communication log obtained with `tyranoscript.trace.server` set to `verbose` makes investigation much smoother.
 
 ---

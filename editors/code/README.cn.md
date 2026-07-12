@@ -11,7 +11,7 @@
 为视觉小说引擎 **[TyranoScript](https://tyrano.jp/)**（`.ks` 剧本文件）提供的 VS Code 语言支持扩展。
 除语法高亮外，基于 Rust 的语言服务器 **`tyrano-lsp`** 还为 `.ks` 文件带来诊断、补全、跳转到定义、查找引用等完整的 “IDE” 功能。
 
-![在 VS Code 中打开的 TyranoScript 剧本文件](images/highlighting.png)
+![在 VS Code 中打开的 TyranoScript 剧本文件](/editors/code/images/highlighting.png)
 
 ---
 
@@ -35,7 +35,7 @@
 打开 `.ks` 文件后，专为 TyranoScript 编写的 TextMate 语法会为各元素着色。
 它**无需等待语言服务器启动、仅凭扩展本身即可生效**，因此打开剧本的瞬间就更易阅读。
 
-![语法高亮示例](images/highlighting.png)
+![语法高亮示例](/editors/code/images/highlighting.png)
 
 主要着色元素：
 
@@ -52,7 +52,7 @@
 每次编辑与保存都会重新解析整个剧本，并用**波浪线**标记问题所在。
 诊断会横跨**整个工程（多个文件）**，因此其他文件中的标签、`data/` 下的素材也会一并校验。
 
-![诊断与“问题”面板示例](images/diagnostics.png)
+![诊断与“问题”面板示例](/editors/code/images/diagnostics.png)
 
 可检测的问题示例：
 
@@ -73,7 +73,7 @@
 将鼠标悬停在标签、参数或标签定义上（或将光标置于其上并按 `Ctrl+K Ctrl+I`），即可看到说明弹窗。
 尤其是悬停在 `[jump]` 的目标标签上时，会解析出**该标签定义在哪个文件中**。
 
-![悬停在跳转目标标签上](images/hover.png)
+![悬停在跳转目标标签上](/editors/code/images/hover.png)
 
 上例中，悬停 `target=*top` 便可一眼看出 `*top` 是定义在 `data/scenario/scene2.ks` 中的标签。
 
@@ -84,7 +84,7 @@
 自动提示标签名、参数名与参数值。
 在输入 `[` 之后，或在输入途中按下 `Ctrl+Space`，都会打开候选列表，并在一侧显示**每个候选项的说明**。
 
-![标签名补全候选](images/completion.png)
+![标签名补全候选](/editors/code/images/completion.png)
 
 - **标签名补全** —— 输入 `[cha` 会提示 `chara_show` / `chara_new` / `chara_hide` …
 - **参数名补全** —— 仅提示该标签接受的参数
@@ -97,7 +97,7 @@
 在任意标签或宏上，可使用**跳转到定义**（`F12`）、**就地速览（Peek）**（`Alt+F12`）与**查找所有引用**（`Shift+F12`）。
 通过 `storage=` 指向另一文件的跳转也会被解析，因此可以**跨文件追踪剧本流程**。
 
-![速览另一文件中的标签定义](images/definition.png)
+![速览另一文件中的标签定义](/editors/code/images/definition.png)
 
 上例中，从 `first.ks` 的 `[jump storage=scene2.ks target=*top]` 追踪 `*top`，将 `scene2.ks` 中对应的定义行就地展开。
 
@@ -108,7 +108,7 @@
 文件中的**标签、宏、角色**会被结构化，并列在侧边栏的“大纲”视图以及编辑器顶部的“导航栏（breadcrumbs）”中。
 即便是很长的剧本，也能单击跳转到目标标签。
 
-![大纲视图中显示的标签、宏、角色](images/outline.png)
+![大纲视图中显示的标签、宏、角色](/editors/code/images/outline.png)
 
 按 `Ctrl+Shift+O` 打开符号搜索，输入标签名即可快速跳转。
 
@@ -132,7 +132,7 @@
 4. `<工作区>/target/release/tyrano-lsp`
 5. `<工作区>/target/debug/tyrano-lsp`
 
-若从源码构建，请 clone [代码仓库](https://github.com/darallium/tyrano-parser)并运行：
+若从源码构建，请 clone [代码仓库](https://github.com/darallium/tyrano-lsp)并运行：
 
 ```bash
 cargo build --release -p tyrano-lsp
@@ -170,7 +170,7 @@ cargo build --release -p tyrano-lsp
 
 ## 🐛 问题反馈与功能建议
 
-请在 [GitHub Issues](https://github.com/darallium/tyrano-parser/issues) 页面提交缺陷与功能建议。
+请在 [GitHub Issues](https://github.com/darallium/tyrano-lsp/issues) 页面提交缺陷与功能建议。
 若能附上将 `tyranoscript.trace.server` 设为 `verbose` 后得到的通信日志，将有助于排查。
 
 ---
