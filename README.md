@@ -1,5 +1,8 @@
 # Tyranoscript LSP
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/darallium/tyrano-lsp)
+[![Release VSCode Extension](https://github.com/darallium/tyrano-lsp/actions/workflows/release-extension.yml/badge.svg)](https://github.com/darallium/tyrano-lsp/actions/workflows/release-extension.yml)
+
 > [!IMPORTANT]
 > news: リポジトリは完全にリワークされました。
 > syntax 関連を大幅にモダン化したため,非常に高速かつ強力なエディタ支援が提供できるようになりました．
