@@ -19,6 +19,9 @@ pub struct HoverResult {
 
 /// Hover documentation at `offset` in `file`.
 pub fn hover(db: &dyn ProjectDb, file: File, offset: TextSize) -> Option<HoverResult> {
+    if file.path(db).extension() == Some("js") {
+        return None;
+    }
     let model = SemanticModel::new(db, file);
     match classify(db, file, offset) {
         CursorTarget::Def { def, range } => {
@@ -92,6 +95,9 @@ fn describe_tag(db: &dyn ProjectDb, model: &SemanticModel<'_>, name: &str) -> Op
         TagResolution::Macro(def) => {
             Some(format!("**[{}]** — macro defined in `{}`", def.name, def.file.path(db)))
         }
+        TagResolution::Plugin => Some(format!(
+            "**[{name}]** — custom tag registered by reachable plugin JavaScript"
+        )),
         TagResolution::Unknown => None,
     }
 }

@@ -5,7 +5,7 @@
 const path = require("path");
 const vscode = require("vscode");
 
-const EXTENSION_ID = "darallium.tyranoscript";
+const EXTENSION_ID = "darallium.tyranoscript-language-server";
 
 function assert(cond, message) {
   if (!cond) {
@@ -73,6 +73,10 @@ function symbolNames(symbols) {
   return names;
 }
 
+function locationUri(location) {
+  return location && (location.uri || location.targetUri);
+}
+
 async function run() {
   const folders = vscode.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
@@ -80,7 +84,11 @@ async function run() {
   }
   const root = folders[0].uri.fsPath;
   const firstPath = path.join(root, "data", "scenario", "first.ks");
+  const scene2Path = path.join(root, "data", "scenario", "scene2.ks");
+  const javascriptPath = path.join(root, "data", "others", "navigation.js");
   const firstUri = vscode.Uri.file(firstPath);
+  const scene2Uri = vscode.Uri.file(scene2Path);
+  const javascriptUri = vscode.Uri.file(javascriptPath);
 
   // Activate the extension.
   const ext = vscode.extensions.getExtension(EXTENSION_ID);
@@ -130,6 +138,93 @@ async function run() {
     { label: "definition into scene2.ks" }
   );
   assert(defUri.fsPath.endsWith("scene2.ks"), "definition resolves into scene2.ks");
+
+  // Definition/reference navigation from an embedded cond expression crosses
+  // iscript, file, and external JavaScript boundaries.
+  const scene2Doc = await vscode.workspace.openTextDocument(scene2Uri);
+  const scorePos = locatePosition(scene2Doc, "playCount", 2);
+  const scoreDefinition = await poll(
+    async () => {
+      const defs = await vscode.commands.executeCommand(
+        "vscode.executeDefinitionProvider",
+        scene2Uri,
+        scorePos
+      );
+      const locations = Array.isArray(defs) ? defs : defs ? [defs] : [];
+      return locations.find((location) => locationUri(location)?.fsPath.endsWith("first.ks"));
+    },
+    { label: "embedded JavaScript definition into first.ks" }
+  );
+  assert(
+    locationUri(scoreDefinition).fsPath.endsWith("first.ks"),
+    "cond property resolves to the iscript write"
+  );
+
+  const scoreReferences = await poll(
+    async () => {
+      const refs = await vscode.commands.executeCommand(
+        "vscode.executeReferenceProvider",
+        scene2Uri,
+        scorePos
+      );
+      const paths = new Set((refs || []).map((location) => locationUri(location)?.fsPath));
+      return paths.has(firstPath) && paths.has(scene2Path) && paths.has(javascriptPath)
+        ? refs
+        : null;
+    },
+    { label: "JavaScript references spanning ks and js files" }
+  );
+  assert(scoreReferences.length >= 3, "find references spans iscript, cond, and external JS");
+
+  // A custom Tyrano tag jumps to the property that registers it in JS.
+  const pluginTagPos = locatePosition(doc, "custom_tag", 2);
+  const pluginDefinition = await poll(
+    async () => {
+      const defs = await vscode.commands.executeCommand(
+        "vscode.executeDefinitionProvider",
+        firstUri,
+        pluginTagPos
+      );
+      const locations = Array.isArray(defs) ? defs : defs ? [defs] : [];
+      return locations.find((location) => locationUri(location)?.fsPath === javascriptPath);
+    },
+    { label: "plugin tag definition in navigation.js" }
+  );
+  assert(
+    locationUri(pluginDefinition).fsPath === javascriptPath,
+    "custom tag resolves to its JavaScript registration"
+  );
+
+  // Opening data/**/*.js attaches the Tyrano language client without
+  // replacing VS Code's JavaScript support. Navigation can therefore start
+  // from an external JS file as well as land in one.
+  const javascriptDoc = await vscode.workspace.openTextDocument(javascriptUri);
+  assert(javascriptDoc.languageId === "javascript", "external source keeps JavaScript language mode");
+  const jsScorePos = locatePosition(javascriptDoc, "playCount", 2);
+  const jsDefinitions = await poll(
+    async () => {
+      const defs = await vscode.commands.executeCommand(
+        "vscode.executeDefinitionProvider",
+        javascriptUri,
+        jsScorePos
+      );
+      const locations = Array.isArray(defs) ? defs : defs ? [defs] : [];
+      return locations.some((location) => locationUri(location)?.fsPath === firstPath)
+        ? locations
+        : null;
+    },
+    { label: "definition provider active inside data JavaScript" }
+  );
+  assert(jsDefinitions.length > 0, "JavaScript-side navigation reaches TyranoScript");
+
+  await poll(
+    () => {
+      const diagnostics = vscode.languages.getDiagnostics(javascriptUri);
+      return diagnostics.length === 0 ? true : null;
+    },
+    { label: "external JavaScript has no Tyrano syntax diagnostics" }
+  );
+  assert(true, "external JavaScript is diagnosed only as JavaScript");
 
   // Document symbols -> "start" and "greet".
   await poll(

@@ -7,7 +7,7 @@
 use tyrano_parser_core::SymbolKind;
 use tyrano_project::registry::{GLOBAL_PARAMS, ValueKind, builtin_registry};
 use tyrano_project::{File, ProjectDb};
-use tyrano_semantic::SemanticModel;
+use tyrano_semantic::{SemanticModel, TagResolution, project_javascript_tag_names};
 use tyrano_syntax::text::TextSize;
 
 /// What a completion item is, mapped to an LSP kind by the adapter.
@@ -54,6 +54,9 @@ enum Context {
 
 /// Completion items at `offset` in `file`.
 pub fn completions(db: &dyn ProjectDb, file: File, offset: TextSize) -> Vec<CompletionItem> {
+    if file.path(db).extension() == Some("js") {
+        return Vec::new();
+    }
     let text = file.source(db).text(db);
     match context(text, usize::from(offset.min(TextSize::of(text)))) {
         Context::TagName => tag_completions(db, file),
@@ -77,6 +80,13 @@ fn tag_completions(db: &dyn ProjectDb, file: File) -> Vec<CompletionItem> {
         .collect();
 
     let index = tyrano_parser_core::semantic_index(db, file.source(db));
+    for name in project_javascript_tag_names(db, db.project()).iter() {
+        out.push(CompletionItem {
+            label: name.clone(),
+            kind: CompletionKind::Tag,
+            detail: Some("custom tag — reachable plugin JavaScript".to_string()),
+        });
+    }
     let mut macros: Vec<(String, String)> = tyrano_project::project_macros(db)
         .iter()
         .map(|(name, def)| (name.to_string(), def.file.path(db).to_string()))
@@ -115,8 +125,11 @@ fn param_completions(db: &dyn ProjectDb, file: File, tag: &str) -> Vec<Completio
                 detail: Some(format!("{requirement}")),
             });
         }
-    } else if SemanticModel::new(db, file).resolve_macro(tag).is_none() {
-        return Vec::new();
+    } else {
+        match SemanticModel::new(db, file).resolve_tag(tag) {
+            TagResolution::Macro(_) | TagResolution::Plugin => {}
+            TagResolution::Builtin(_) | TagResolution::Unknown => return Vec::new(),
+        }
     }
     for name in GLOBAL_PARAMS {
         out.push(CompletionItem {
@@ -412,6 +425,32 @@ mod tests {
         let fancy = items.iter().find(|i| i.label == "fancy").unwrap();
         assert_eq!(fancy.kind, CompletionKind::Macro);
         assert!(fancy.detail.as_deref().unwrap().contains("data/scenario/b.ks"));
+    }
+
+    #[test]
+    fn tag_completion_lists_reachable_plugin_tags() {
+        let db = ProjectBuilder::new()
+            .file(
+                "data/scenario/a.ks",
+                "[loadjs storage=demo.js]\n[custom_tag cond=\n[",
+            )
+            .javascript(
+                "data/others/demo.js",
+                "TYRANO.kag.ftag.master_tag.custom_tag = {};",
+            )
+            .build();
+        let f = file(&db, "data/scenario/a.ks");
+        let source = f.source(&db).text(&db);
+        let items = completions(&db, f, TextSize::of(source));
+        assert!(labels(&items).contains(&"custom_tag"));
+
+        let param_at = source.find("[custom_tag ").unwrap() + "[custom_tag ".len();
+        let params = completions(
+            &db,
+            f,
+            TextSize::new(u32::try_from(param_at).unwrap()),
+        );
+        assert!(labels(&params).contains(&"cond"));
     }
 
     #[test]

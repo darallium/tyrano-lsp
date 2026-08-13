@@ -31,7 +31,7 @@ On top of syntax highlighting, the Rust-based language server **`tyrano-lsp`** b
 | [Real-time diagnostics](#-real-time-diagnostics) | Flags unknown tags, unresolved jumps, missing assets | Required |
 | [Hover information](#-hover-information) | Pops up docs for tags, parameters and labels | Required |
 | [Completion](#-completion) | Suggests tag names, parameter names and values | Required |
-| [Go to definition / references](#-go-to-definition--references) | Tracks labels and macros across files | Required |
+| [Go to definition / references](#-go-to-definition--references) | Tracks labels, macros, embedded JS and plugin tags across sources | Required |
 | [Outline / breadcrumbs](#-outline--breadcrumbs) | Navigable list of labels, macros and characters | Required |
 
 > Features marked "Required" use the `tyrano-lsp` language server — see [Setup](#-setup). **Syntax highlighting works with the extension alone**, no server needed.
@@ -102,8 +102,12 @@ Right after typing `[`, or by pressing `Ctrl+Space` mid-word, a candidate list o
 
 ### 🔗 Go to definition / references
 
-On any label or macro you can use **Go to Definition** (`F12`), **Peek** (`Alt+F12`) and **Find All References** (`Shift+F12`).
+On labels, macros, variables inside `iscript`/`cond`/`exp`, and plugin tags you can use **Go to Definition** (`F12`), **Peek** (`Alt+F12`) and **Find All References** (`Shift+F12`).
 Jumps that point to another file via `storage=` are resolved, so you can **follow the scenario flow across files**.
+
+- Properties under `f` / `sf` / `tf` / `mp` are tracked across embedded expressions, `iscript`, and external `.js` files under `data/`.
+- A call such as `[custom_tag]` can jump to a JavaScript registration such as `TYRANO.kag.ftag.master_tag.custom_tag`.
+- Navigation can start inside an external `.js` file while the document remains in VS Code's normal JavaScript language mode.
 
 ![Peeking a label definition in another file](/editors/code/images/definition.png)
 
@@ -167,6 +171,7 @@ Then place the resulting `target/release/tyrano-lsp` in one of the locations abo
 |---------|---------|-------------|
 | `tyranoscript.server.path` | `""` | Absolute path to the `tyrano-lsp` executable. When empty, it is auto-detected using the search order above. |
 | `tyranoscript.trace.server` | `off` | Communication log level between VS Code and the server (`off` / `messages` / `verbose`). Handy for bug reports. |
+| `tyranoscript.javascript.navigation.enabled` | `true` | Enables TyranoScript definition/reference providers in `data/**/*.js`. Disable it if another JavaScript extension conflicts. |
 
 ### Commands
 

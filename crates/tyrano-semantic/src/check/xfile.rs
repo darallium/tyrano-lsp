@@ -28,7 +28,12 @@ pub(crate) fn check_xfile(db: &dyn ProjectDb, file: File) -> Vec<FileDiagnostic>
 fn check_storage_references(db: &dyn ProjectDb, file: File, out: &mut Vec<FileDiagnostic>) {
     let index = tyrano_parser_core::semantic_index(db, file.source(db));
     for use_ in index.use_def().uses() {
-        let Resolution::External { storage, target } = &use_.resolution else { continue };
+        let Resolution::External { storage, target } = &use_.resolution else {
+            continue;
+        };
+        if storage.trim_start().starts_with(['&', '%']) {
+            continue;
+        }
         let Some(dep) = resolve_storage(db, StorageName::new(db, storage.clone())) else {
             out.push(FileDiagnostic {
                 code: codes::UNKNOWN_STORAGE,
@@ -40,7 +45,10 @@ fn check_storage_references(db: &dyn ProjectDb, file: File, out: &mut Vec<FileDi
         };
         // The raw target keeps its `*`; only `*`-prefixed targets are
         // label references (same convention as `SemanticModel::lift`).
-        if let Some(label) = target.as_deref().and_then(|t| t.strip_prefix('*'))
+        if let Some(label) = target
+            .as_deref()
+            .map(|target| target.strip_prefix('*').unwrap_or(target))
+            .filter(|label| !label.trim_start().starts_with(['&', '%']))
             && !exported_labels(db, dep).contains(label)
         {
             out.push(FileDiagnostic {
@@ -63,11 +71,19 @@ fn check_asset_references(db: &dyn ProjectDb, file: File, out: &mut Vec<FileDiag
     let registry = builtin_registry();
 
     for tag in all_tags(&module.scenario()) {
-        let Some(spec) = registry.get(&tag.name()) else { continue };
+        let Some(spec) = registry.get(&tag.name()) else {
+            continue;
+        };
         for param in tag.params() {
-            let Some(ps) = spec.param(&param.name()) else { continue };
-            let ValueKind::Asset(kind) = ps.kind else { continue };
-            let ValueClass::Static(value) = classify(&param, &opts) else { continue };
+            let Some(ps) = spec.param(&param.name()) else {
+                continue;
+            };
+            let ValueKind::Asset(kind) = ps.kind else {
+                continue;
+            };
+            let ValueClass::Static(value) = classify(&param, &opts) else {
+                continue;
+            };
             if value.is_empty() || model.resolve_asset(kind, &value).is_some() {
                 continue;
             }

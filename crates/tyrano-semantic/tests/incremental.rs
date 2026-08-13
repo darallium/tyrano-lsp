@@ -9,8 +9,12 @@
 use std::sync::Arc;
 
 use tyrano_project::testing::ProjectBuilder;
-use tyrano_project::{File, FileChange, ProjectDatabase, ProjectPath};
-use tyrano_semantic::{check_file, exported_labels, file_dependencies};
+use tyrano_project::{File, FileChange, ProjectDatabase, ProjectDb, ProjectPath};
+use tyrano_semantic::{
+    check_file, exported_labels, file_dependencies, js_definition_locations, js_symbol_at,
+    project_js_navigation_index,
+};
+use tyrano_syntax::text::TextSize;
 
 fn path(s: &str) -> ProjectPath {
     ProjectPath::new(s).unwrap()
@@ -23,8 +27,14 @@ fn file(db: &ProjectDatabase, p: &str) -> File {
 /// first.ks references scene2.ks's `*top`; both clean.
 fn linked_project() -> ProjectDatabase {
     ProjectBuilder::new()
-        .file("data/scenario/first.ks", "*start\n[jump storage=scene2.ks target=*top]\n[s]\n")
-        .file("data/scenario/scene2.ks", "*top\nこんにちは[p]\n*bottom\n[s]\n")
+        .file(
+            "data/scenario/first.ks",
+            "*start\n[jump storage=scene2.ks target=*top]\n[s]\n",
+        )
+        .file(
+            "data/scenario/scene2.ks",
+            "*top\nこんにちは[p]\n*bottom\n[s]\n",
+        )
         .build()
 }
 
@@ -40,10 +50,15 @@ fn non_label_edit_of_dependency_keeps_dependent_diagnostics() {
     // without recomputing.
     db.apply_file_change(
         &path("data/scenario/scene2.ks"),
-        FileChange::Modified("*top\n全く別の身体です[l][p]\n*bottom\n[wait time=100]\n[s]\n".to_string()),
+        FileChange::Modified(
+            "*top\n全く別の身体です[l][p]\n*bottom\n[wait time=100]\n[s]\n".to_string(),
+        ),
     );
     let after = check_file(&db, first);
-    assert!(Arc::ptr_eq(&before, &after), "dependent's diagnostics must be backdated");
+    assert!(
+        Arc::ptr_eq(&before, &after),
+        "dependent's diagnostics must be backdated"
+    );
 }
 
 #[test]
@@ -71,26 +86,43 @@ fn label_rename_in_dependency_invalidates_dependent() {
 #[test]
 fn creating_missing_storage_heals_diagnostics_and_edges() {
     let mut db = ProjectBuilder::new()
-        .file("data/scenario/first.ks", "*start\n[jump storage=gone.ks target=*top]\n")
+        .file(
+            "data/scenario/first.ks",
+            "*start\n[jump storage=gone.ks target=*top]\n",
+        )
         .build();
     let first = file(&db, "data/scenario/first.ks");
 
     let before = check_file(&db, first);
     assert_eq!(before.len(), 1, "{before:?}");
     assert_eq!(before[0].code, "xsem-unknown-storage");
-    assert!(file_dependencies(&db, first).is_empty(), "unresolved storage: no edge");
+    assert!(
+        file_dependencies(&db, first).is_empty(),
+        "unresolved storage: no edge"
+    );
 
     db.apply_file_change(
         &path("data/scenario/gone.ks"),
         FileChange::Created("*top\n[s]\n".to_string()),
     );
-    assert!(check_file(&db, first).is_empty(), "created file resolves the reference");
+    assert!(
+        check_file(&db, first).is_empty(),
+        "created file resolves the reference"
+    );
     let gone = file(&db, "data/scenario/gone.ks");
-    assert_eq!(&*file_dependencies(&db, first), &[gone], "edge appears with the file");
+    assert_eq!(
+        &*file_dependencies(&db, first),
+        &[gone],
+        "edge appears with the file"
+    );
 
     db.apply_file_change(&path("data/scenario/gone.ks"), FileChange::Deleted);
     let after = check_file(&db, first);
-    assert_eq!(after.len(), 1, "deletion re-breaks the reference: {after:?}");
+    assert_eq!(
+        after.len(),
+        1,
+        "deletion re-breaks the reference: {after:?}"
+    );
     assert_eq!(after[0].code, "xsem-unknown-storage");
 }
 
@@ -110,7 +142,10 @@ fn asset_appearance_scopes_invalidation_to_asset_users() {
     assert!(plain_before.is_empty());
 
     // The asset shows up on disk.
-    db.apply_file_change(&path("data/bgimage/room.jpg"), FileChange::Created(String::new()));
+    db.apply_file_change(
+        &path("data/bgimage/room.jpg"),
+        FileChange::Created(String::new()),
+    );
 
     assert!(check_file(&db, pics).is_empty(), "asset now exists");
     assert!(
@@ -128,5 +163,36 @@ fn identical_rewrite_of_dependency_keeps_exported_labels() {
     let text = scene2.source(&db).text(&db).to_string();
     db.apply_file_change(&path("data/scenario/scene2.ks"), FileChange::Modified(text));
     let after = exported_labels(&db, scene2);
-    assert!(Arc::ptr_eq(&before, &after), "identical reparse must backdate the projection");
+    assert!(
+        Arc::ptr_eq(&before, &after),
+        "identical reparse must backdate the projection"
+    );
+}
+
+#[test]
+fn javascript_navigation_index_follows_cross_file_edits() {
+    let mut db = ProjectBuilder::new()
+        .file(
+            "data/scenario/main.ks",
+            "[if cond='f.score > 0']ok[endif]\n",
+        )
+        .javascript("data/others/state.js", "f.score = 1;\n")
+        .build();
+    let main = file(&db, "data/scenario/main.ks");
+    let text = main.source(&db).text(&db);
+    let offset = TextSize::new(text.find("score").unwrap() as u32);
+    let symbol = js_symbol_at(&db, main, offset).unwrap();
+    let before = project_js_navigation_index(&db, db.project());
+    assert_eq!(js_definition_locations(&db, &symbol).len(), 1);
+
+    db.apply_file_change(
+        &path("data/others/state.js"),
+        FileChange::Modified("f.other = 1;\n".to_owned()),
+    );
+    let after = project_js_navigation_index(&db, db.project());
+    assert!(
+        !Arc::ptr_eq(&before, &after),
+        "a changed JavaScript effect must invalidate the navigation projection"
+    );
+    assert!(js_definition_locations(&db, &symbol).is_empty());
 }

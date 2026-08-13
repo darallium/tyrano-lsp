@@ -12,13 +12,32 @@
 pub mod check;
 pub mod codes;
 mod deps;
+mod flow;
+mod js;
+mod js_navigation;
 mod labels;
 mod model;
+mod variable;
 
 pub use deps::{DependencyGraph, file_dependencies, project_dependency_graph};
+pub use flow::{
+    FlowEdge, FlowEdgeKind, FlowUnit, FlowUnitKind, ProjectFlowAnalysis, analyze_project_flow,
+};
+pub use js::{
+    FileJsAnalysis, JsRegion, JsRegionKind, JsTagRegistration, analyze_project_javascript,
+    file_js_analysis, javascript_tag_at, project_javascript_tag_definitions,
+    project_javascript_tag_names, project_javascript_tag_registrations,
+};
+pub use js_navigation::{
+    JsSourceLocation, JsSymbol, ProjectJsNavigationIndex, js_definition_locations,
+    js_reference_locations, js_symbol_at, project_js_navigation_index,
+};
 pub use labels::exported_labels;
-pub use model::{
-    LabelResolution, LabelTarget, ProjectResolution, SemanticModel, TagResolution,
+pub use model::{LabelResolution, LabelTarget, ProjectResolution, SemanticModel, TagResolution};
+pub use variable::{
+    AbstractDefinition, DerivedDefinition, DerivedDefinitionKind, LifecycleIssue,
+    LifecycleIssueKind, ProjectVariableAnalysis, StatePath, StateSegment,
+    analyze_project_variables,
 };
 
 use std::sync::Arc;
@@ -31,21 +50,33 @@ use tyrano_project::{File, ProjectDb};
 /// tag and cross-file checks (`xsem-*`), sorted by `(start, end, code)`.
 #[salsa::tracked]
 pub fn check_file(db: &dyn ProjectDb, file: File) -> Arc<[FileDiagnostic]> {
-    let mut all: Vec<FileDiagnostic> =
-        tyrano_parser_core::file_diagnostics(db, file.source(db)).iter().cloned().collect();
+    if file.path(db).extension() == Some("js") {
+        let mut diagnostics = js::javascript_diagnostics(db, file);
+        diagnostics.sort_by_key(|d| (d.range.start(), d.range.end(), d.code));
+        return diagnostics.into();
+    }
+    let mut all: Vec<FileDiagnostic> = tyrano_parser_core::file_diagnostics(db, file.source(db))
+        .iter()
+        .cloned()
+        .collect();
     all.extend(check::tags::check_tags(db, file));
     all.extend(check::xfile::check_xfile(db, file));
+    all.extend(js::javascript_diagnostics(db, file));
     all.sort_by_key(|d| (d.range.start(), d.range.end(), d.code));
     all.into()
 }
 
-/// [`check_file`] over every scenario file, in path order. A plain
-/// function: the per-file queries are the memoization boundary.
+/// [`check_file`] over every scenario and auxiliary `.ks` source, in path
+/// order. A plain function: the per-file queries are the memoization boundary.
 pub fn check_project(db: &dyn ProjectDb) -> Vec<(File, Arc<[FileDiagnostic]>)> {
-    db.project()
-        .scenario_files(db)
-        .iter()
-        .map(|&file| (file, check_file(db, file)))
+    let project = db.project();
+    let mut files = project.scenario_files(db).clone();
+    files.extend(project.library_files(db));
+    files.sort_by(|a, b| a.path(db).cmp(b.path(db)));
+    files.dedup();
+    files
+        .into_iter()
+        .map(|file| (file, check_file(db, file)))
         .collect()
 }
 
@@ -57,7 +88,8 @@ mod tests {
     use tyrano_project::{AssetKind, ProjectDatabase, ProjectPath};
 
     fn file(db: &ProjectDatabase, path: &str) -> File {
-        db.file(&ProjectPath::new(path).unwrap()).expect("fixture file exists")
+        db.file(&ProjectPath::new(path).unwrap())
+            .expect("fixture file exists")
     }
 
     fn two_file_project() -> ProjectDatabase {
@@ -68,6 +100,18 @@ mod tests {
             )
             .file("data/scenario/scene2.ks", "*top\n*bottom\ntext\n")
             .build()
+    }
+
+    #[test]
+    fn standalone_javascript_diagnostics_do_not_use_tyrano_syntax() {
+        let db = ProjectBuilder::new()
+            .javascript(
+                "data/others/plugin.js",
+                "const template = '[not_a_tyrano_tag]';\nf.score = 1;\n",
+            )
+            .build();
+        let js = file(&db, "data/others/plugin.js");
+        assert!(check_file(&db, js).is_empty());
     }
 
     #[test]
@@ -107,7 +151,11 @@ mod tests {
 
         let local = model.resolve_label("start").expect("local label");
         assert_eq!(local.file, first);
-        assert_eq!(model.resolve_label("top"), None, "other file's label is not local");
+        assert_eq!(
+            model.resolve_label("top"),
+            None,
+            "other file's label is not local"
+        );
 
         match model.resolve_label_in("scene2.ks", "top") {
             LabelResolution::Found(t) => assert_eq!(t.file, scene2),
@@ -117,7 +165,10 @@ mod tests {
             model.resolve_label_in("scene2.ks", "gone"),
             LabelResolution::LabelNotFound(scene2)
         );
-        assert_eq!(model.resolve_label_in("nowhere.ks", "top"), LabelResolution::FileNotFound);
+        assert_eq!(
+            model.resolve_label_in("nowhere.ks", "top"),
+            LabelResolution::FileNotFound
+        );
     }
 
     #[test]
@@ -161,8 +212,13 @@ mod tests {
         assert_eq!(
             resolved,
             vec![
-                ProjectResolution::FileNotFound { storage: "gone.ks".to_string() },
-                ProjectResolution::LabelNotFound { file: scene2, label: "missing".to_string() },
+                ProjectResolution::FileNotFound {
+                    storage: "gone.ks".to_string()
+                },
+                ProjectResolution::LabelNotFound {
+                    file: scene2,
+                    label: "missing".to_string()
+                },
                 ProjectResolution::ExternalFile(scene2),
             ]
         );
@@ -172,7 +228,10 @@ mod tests {
     fn resolve_macro_prefers_local_then_project() {
         let db = ProjectBuilder::new()
             .file("data/scenario/a.ks", "[macro name=greet]a[endmacro]\n")
-            .file("data/scenario/b.ks", "[macro name=greet]b[endmacro]\n[macro name=only_b][endmacro]\n")
+            .file(
+                "data/scenario/b.ks",
+                "[macro name=greet]b[endmacro]\n[macro name=only_b][endmacro]\n",
+            )
             .build();
         let a = file(&db, "data/scenario/a.ks");
         let b = file(&db, "data/scenario/b.ks");
@@ -180,13 +239,19 @@ mod tests {
         let model_b = SemanticModel::new(&db, b);
         assert_eq!(
             model_b.resolve_macro("greet"),
-            Some(MacroDef { file: b, name: "greet".to_string() }),
+            Some(MacroDef {
+                file: b,
+                name: "greet".to_string()
+            }),
             "local definition shadows the project registry"
         );
         let model_a = SemanticModel::new(&db, a);
         assert_eq!(
             model_a.resolve_macro("only_b"),
-            Some(MacroDef { file: b, name: "only_b".to_string() }),
+            Some(MacroDef {
+                file: b,
+                name: "only_b".to_string()
+            }),
             "project registry fills in cross-file macros"
         );
         assert_eq!(model_a.resolve_macro("nope"), None);
@@ -195,7 +260,10 @@ mod tests {
     #[test]
     fn resolve_tag_builtin_beats_macro() {
         let db = ProjectBuilder::new()
-            .file("data/scenario/a.ks", "[macro name=jump]shadow[endmacro]\n[macro name=greet][endmacro]\n")
+            .file(
+                "data/scenario/a.ks",
+                "[macro name=jump]shadow[endmacro]\n[macro name=greet][endmacro]\n",
+            )
             .build();
         let model = SemanticModel::new(&db, file(&db, "data/scenario/a.ks"));
 

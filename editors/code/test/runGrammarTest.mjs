@@ -26,6 +26,7 @@ async function main() {
       "--disable-extensions",
       "--disable-gpu",
       "--no-sandbox",
+      ...(process.platform === "linux" ? ["--ozone-platform=x11"] : []),
       "--disable-workspace-trust",
     ],
   });

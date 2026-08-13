@@ -5,10 +5,11 @@
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License: MIT">
 </p>
 
-日本語 ・ [English](https://github.com/darallium/tyrano-lsp/blob/master/editors/code/README.cn.md) ・ [中文](https://github.com/darallium/tyrano-lsp/blob/claude/vscode-extension-readme-hmishl/editors/code/README.cnmd)
+**日本語** ・ [English](README.en.md) ・ [中文](README.cn.md)
+日本語 ・ [English](https://github.com/darallium/tyrano-lsp/blob/master/editors/code/README.cn.md) ・ [中文](https://github.com/darallium/tyrano-lsp/blob/master/editors/code/README.cn.md)
 
-ノベルゲームエンジン **[ティラノスクリプト](https://tyrano.jp/)**（`.ks` ファイル）のシナリオ執筆を支援する VS Code 拡張機能です。
-シンタックスハイライトに加え、Rust 製の言語サーバー **`tyrano-lsp`** による診断・補完・定義ジャンプ・参照検索を補助します。
+ノベルゲームエンジン **[ティラノスクリプト](https://tyrano.jp/)**のシナリオ執筆を支援する VS Code 拡張機能です。
+シンタックスハイライトに加え、高速な言語サーバーによる診断・補完・定義ジャンプ・参照検索を補助します。
 
 ![TyranoScript のシナリオファイルを VS Code で開いた様子](/editors/code/images/highlighting.png)
 
@@ -22,7 +23,7 @@
 | [リアルタイム診断](#-リアルタイム診断) | 未知タグ・未解決ジャンプ・素材欠落などを波線で通知 |
 | [ホバー情報](#-ホバー情報) | タグ・パラメータ・ラベルの説明をポップアップ表示 |
 | [入力補完](#-入力補完) | タグ名・パラメータ名・値の候補を提示 |
-| [定義へ移動 / 参照検索](#-定義へ移動--参照検索) | ファイルをまたいだラベル・マクロの追跡 |
+| [定義へ移動 / 参照検索](#定義へ移動) | ラベル・マクロ・埋め込みJS・プラグインタグの横断追跡 |
 | [アウトライン / パンくず](#-アウトライン--パンくず) | ラベル・マクロ・キャラクターの一覧ナビゲーション |
 
 ---
@@ -92,8 +93,12 @@
 
 ### 定義へ移動
 
-ラベルやマクロの上で 定義へ移動（`F12`）・その場でのぞき見（`Alt+F12`）・参照を検索（`Shift+F12`）が使えます。
+ラベルやマクロ、`iscript`・`cond`・`exp` 内の変数、プラグインタグの上で 定義へ移動（`F12`）・その場でのぞき見（`Alt+F12`）・参照を検索（`Shift+F12`）が使えます。
 `storage=` で別ファイルを指定したジャンプも解決されるため、ファイルをまたいでシナリオの流れを追跡できます。
+
+- `f` / `sf` / `tf` / `mp` のプロパティは、`.ks` の埋め込み式・`iscript`・`data/` 配下の外部 `.js` を横断します。
+- `[custom_tag]` から `TYRANO.kag.ftag.master_tag.custom_tag` などのJavaScript登録位置へ移動できます。
+- 外部 `.js` 側からもTyranoScriptの定義・参照へ移動できます。通常のJavaScript言語モードとVS Code標準のJavaScript機能は維持されます。
 
 ![別ファイルのラベル定義を Peek 表示した様子](/editors/code/images/definition.png)
 
@@ -119,6 +124,7 @@
 |---------|--------|------|
 | `tyranoscript.server.path` | `""` | `tyrano-lsp` 実行ファイルの絶対パス。空の場合は自動検出します。 |
 | `tyranoscript.trace.server` | `off` | VS Code と言語サーバー間の通信ログレベル（`off` / `messages` / `verbose`）。不具合報告時に便利です。 |
+| `tyranoscript.javascript.navigation.enabled` | `true` | `data/**/*.js` 内でもTyranoScriptの定義移動・参照検索を有効にします。他のJavaScript拡張と競合する場合は無効化できます。 |
 
 ---
 

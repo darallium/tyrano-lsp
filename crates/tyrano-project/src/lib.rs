@@ -82,10 +82,18 @@ impl ProjectDatabase {
             &db,
             metadata.settings,
             Vec::new(),
+            Vec::new(),
+            Vec::new(),
             AssetIndex::new(metadata.assets),
         );
         db.project = Some(project);
         for (path, text) in metadata.scenario_sources {
+            db.apply_file_change(&path, FileChange::Created(text));
+        }
+        for (path, text) in metadata.library_sources {
+            db.apply_file_change(&path, FileChange::Created(text));
+        }
+        for (path, text) in metadata.javascript_sources {
             db.apply_file_change(&path, FileChange::Created(text));
         }
         db
@@ -112,10 +120,14 @@ impl ProjectDatabase {
                 let source = file.source(self);
                 source.set_text(self).to(text);
                 if source.parse_options(self) != settings.parse_options {
-                    source.set_parse_options(self).to(settings.parse_options.clone());
+                    source
+                        .set_parse_options(self)
+                        .to(settings.parse_options.clone());
                 }
                 if source.interpret_options(self) != settings.interpret_options {
-                    source.set_interpret_options(self).to(settings.interpret_options.clone());
+                    source
+                        .set_interpret_options(self)
+                        .to(settings.interpret_options.clone());
                 }
                 if file.status(self) != FileStatus::Exists {
                     file.set_status(self).to(FileStatus::Exists);
@@ -144,7 +156,10 @@ impl ProjectDatabase {
         let project = self.project();
 
         let is_scenario = path.extension() == Some("ks")
-            && settings.scenario_roots.iter().any(|r| path.strip_prefix(r).is_some());
+            && settings
+                .scenario_roots
+                .iter()
+                .any(|r| path.strip_prefix(r).is_some());
         if is_scenario {
             let mut snapshot = project.scenario_files(self).clone();
             let known = snapshot.contains(&file);
@@ -156,6 +171,23 @@ impl ProjectDatabase {
                 snapshot.retain(|f| *f != file);
                 project.set_scenario_files(self).to(snapshot);
             }
+        }
+
+        let is_source = settings
+            .source_roots
+            .iter()
+            .any(|root| path.strip_prefix(root).is_some());
+        if is_source && path.extension() == Some("ks") && !is_scenario {
+            let current = project.library_files(self).clone();
+            update_file_snapshot(self, &current, file, present, |db, files| {
+                project.set_library_files(db).to(files);
+            });
+        }
+        if is_source && path.extension() == Some("js") {
+            let current = project.javascript_files(self).clone();
+            update_file_snapshot(self, &current, file, present, |db, files| {
+                project.set_javascript_files(db).to(files);
+            });
         }
 
         let asset_kinds: Vec<AssetKind> = settings
@@ -178,6 +210,27 @@ impl ProjectDatabase {
     }
 }
 
+fn update_file_snapshot(
+    db: &mut ProjectDatabase,
+    current: &[File],
+    file: File,
+    present: bool,
+    set: impl FnOnce(&mut ProjectDatabase, Vec<File>),
+) {
+    let known = current.contains(&file);
+    if present == known {
+        return;
+    }
+    let mut snapshot = current.to_vec();
+    if present {
+        snapshot.push(file);
+        snapshot.sort_by(|a, b| a.path(db).cmp(b.path(db)));
+    } else {
+        snapshot.retain(|candidate| *candidate != file);
+    }
+    set(db, snapshot);
+}
+
 #[salsa::db]
 impl salsa::Database for ProjectDatabase {}
 
@@ -191,7 +244,8 @@ impl ProjectDb for ProjectDatabase {
     }
 
     fn project(&self) -> Project {
-        self.project.expect("ProjectDatabase::new sets the project input")
+        self.project
+            .expect("ProjectDatabase::new sets the project input")
     }
 }
 
@@ -226,9 +280,15 @@ mod tests {
             .iter()
             .map(|f| f.path(&db).as_str())
             .collect();
-        assert_eq!(paths, ["data/scenario/a.ks", "data/scenario/b.ks"], "sorted by path");
+        assert_eq!(
+            paths,
+            ["data/scenario/a.ks", "data/scenario/b.ks"],
+            "sorted by path"
+        );
 
-        let a = db.file(&ProjectPath::new("data/scenario/a.ks").unwrap()).unwrap();
+        let a = db
+            .file(&ProjectPath::new("data/scenario/a.ks").unwrap())
+            .unwrap();
         assert_eq!(a.status(&db), FileStatus::Exists);
         assert_eq!(a.source(&db).text(&db), "*top\n");
 
@@ -239,7 +299,9 @@ mod tests {
 
     #[test]
     fn file_change_created_then_deleted_updates_snapshot() {
-        let mut db = ProjectBuilder::new().file("data/scenario/a.ks", "*a\n").build();
+        let mut db = ProjectBuilder::new()
+            .file("data/scenario/a.ks", "*a\n")
+            .build();
         let path = ProjectPath::new("data/scenario/new.ks").unwrap();
 
         db.apply_file_change(&path, FileChange::Created("*fresh\n".to_string()));
@@ -260,7 +322,11 @@ mod tests {
         let bg = ProjectPath::new("data/bgimage/room.jpg").unwrap();
         db.apply_file_change(&bg, FileChange::Created(String::new()));
         assert!(db.project().scenario_files(&db).is_empty());
-        assert!(db.project().asset_index(&db).contains(AssetKind::BgImage, &bg));
+        assert!(
+            db.project()
+                .asset_index(&db)
+                .contains(AssetKind::BgImage, &bg)
+        );
 
         // A .ks file outside every scenario root: a File exists, but the
         // project does not include it.
@@ -277,8 +343,12 @@ mod tests {
             .file("data/scenario/a.ks", "*a\n")
             .file("data/scenario/b.ks", "*b\n")
             .build();
-        let a = db.file(&ProjectPath::new("data/scenario/a.ks").unwrap()).unwrap();
-        let b = db.file(&ProjectPath::new("data/scenario/b.ks").unwrap()).unwrap();
+        let a = db
+            .file(&ProjectPath::new("data/scenario/a.ks").unwrap())
+            .unwrap();
+        let b = db
+            .file(&ProjectPath::new("data/scenario/b.ks").unwrap())
+            .unwrap();
 
         let idx_a = tyrano_parser_core::semantic_index(&db, a.source(&db));
         let idx_b = tyrano_parser_core::semantic_index(&db, b.source(&db));
@@ -290,7 +360,13 @@ mod tests {
 
         let idx_a2 = tyrano_parser_core::semantic_index(&db, a.source(&db));
         let idx_b2 = tyrano_parser_core::semantic_index(&db, b.source(&db));
-        assert!(!std::sync::Arc::ptr_eq(&idx_a, &idx_a2), "edited file recomputes");
-        assert!(std::sync::Arc::ptr_eq(&idx_b, &idx_b2), "sibling stays memoized");
+        assert!(
+            !std::sync::Arc::ptr_eq(&idx_a, &idx_a2),
+            "edited file recomputes"
+        );
+        assert!(
+            std::sync::Arc::ptr_eq(&idx_b, &idx_b2),
+            "sibling stays memoized"
+        );
     }
 }

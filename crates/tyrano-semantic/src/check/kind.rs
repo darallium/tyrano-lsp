@@ -7,9 +7,9 @@
 //! satisfy every kind by construction (gradual typing — see
 //! `tyrano_project::registry::kind`).
 
+use tyrano_project::ValueKind;
 use tyrano_syntax::SyntaxKind;
 use tyrano_syntax::ast::{InterpretOptions, Param};
-use tyrano_project::ValueKind;
 
 /// How a parameter's written value relates to static checking.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,8 +40,14 @@ pub fn classify(param: &Param, opts: &InterpretOptions) -> ValueClass {
             _ => {}
         }
     }
-    // `name=` with no value node cooks to the empty string.
-    ValueClass::Static(param.cooked_value(opts).unwrap_or_default())
+    // Tyrano evaluates the dynamic marker after removing optional quotes, so
+    // `x="&tf.pos"` and `x=&tf.pos` have the same runtime meaning.
+    let cooked = param.cooked_value(opts).unwrap_or_default();
+    match cooked.trim_start().chars().next() {
+        Some('&') => ValueClass::Entity,
+        Some('%') => ValueClass::ParamRef,
+        _ => ValueClass::Static(cooked),
+    }
 }
 
 /// A static value failing its expected kind.
@@ -53,7 +59,10 @@ pub struct KindMismatch {
 }
 
 fn mismatch(expected: ValueKind, expectation: impl Into<String>) -> Result<(), KindMismatch> {
-    Err(KindMismatch { expected, expectation: expectation.into() })
+    Err(KindMismatch {
+        expected,
+        expectation: expectation.into(),
+    })
 }
 
 /// Checks a cooked static value against `kind`. One rule per variant:
@@ -74,10 +83,13 @@ pub fn check_static(kind: ValueKind, raw: &str) -> Result<(), KindMismatch> {
         | ValueKind::Expression
         | ValueKind::Scenario
         | ValueKind::Asset(_) => Ok(()),
-        ValueKind::Label => match raw.strip_prefix('*') {
-            Some(name) if !name.is_empty() => Ok(()),
-            _ => mismatch(kind, "a `*label` reference"),
-        },
+        ValueKind::Label => {
+            if !raw.trim_start_matches('*').is_empty() {
+                Ok(())
+            } else {
+                mismatch(kind, "a non-empty label, optionally prefixed by `*`")
+            }
+        }
         ValueKind::Number => {
             if raw.parse::<i64>().is_ok() || raw.parse::<f64>().is_ok() {
                 Ok(())
@@ -93,9 +105,9 @@ pub fn check_static(kind: ValueKind, raw: &str) -> Result<(), KindMismatch> {
             }
         }
         ValueKind::Color => {
-            let digits = raw.strip_prefix('#').or_else(|| {
-                raw.strip_prefix("0x").or_else(|| raw.strip_prefix("0X"))
-            });
+            let digits = raw
+                .strip_prefix('#')
+                .or_else(|| raw.strip_prefix("0x").or_else(|| raw.strip_prefix("0X")));
             match digits {
                 Some(d)
                     if (d.len() == 6 || d.len() == 8)
@@ -159,8 +171,7 @@ mod tests {
         // `empty=` must come last: the engine-compatible lexer would
         // otherwise consume the following word as its (space-led) value.
         let params = params_of("[m * flag plain=x ent=&f.x fwd=%val empty=]\n");
-        let classes: Vec<ValueClass> =
-            params.iter().map(|p| classify(p, &opts)).collect();
+        let classes: Vec<ValueClass> = params.iter().map(|p| classify(p, &opts)).collect();
         assert_eq!(
             classes,
             [
@@ -178,21 +189,39 @@ mod tests {
     fn classify_cooks_quotes_and_spaces() {
         let opts = InterpretOptions::default();
         let params = params_of("[m a=\"hello world\" b= 1 ]\n");
-        assert_eq!(classify(&params[0], &opts), ValueClass::Static("hello world".to_string()));
+        assert_eq!(
+            classify(&params[0], &opts),
+            ValueClass::Static("hello world".to_string())
+        );
+    }
+
+    #[test]
+    fn quoted_dynamic_markers_remain_dynamic() {
+        let opts = InterpretOptions::default();
+        let params = params_of("[m a=\"&tf.pos\" b=\"%name\"]\n");
+        assert_eq!(classify(&params[0], &opts), ValueClass::Entity);
+        assert_eq!(classify(&params[1], &opts), ValueClass::ParamRef);
     }
 
     fn ok(kind: ValueKind, raw: &str) {
-        assert_eq!(check_static(kind, raw), Ok(()), "{kind:?} should accept {raw:?}");
+        assert_eq!(
+            check_static(kind, raw),
+            Ok(()),
+            "{kind:?} should accept {raw:?}"
+        );
     }
 
     fn bad(kind: ValueKind, raw: &str) {
-        assert!(check_static(kind, raw).is_err(), "{kind:?} should reject {raw:?}");
+        assert!(
+            check_static(kind, raw).is_err(),
+            "{kind:?} should reject {raw:?}"
+        );
     }
 
     #[test]
     fn label_rule() {
         ok(ValueKind::Label, "*start");
-        bad(ValueKind::Label, "start");
+        ok(ValueKind::Label, "start");
         bad(ValueKind::Label, "*");
         bad(ValueKind::Label, "");
     }
@@ -221,7 +250,9 @@ mod tests {
         for raw in ["#ff0000", "0xff0000", "0XFF0000", "#ff0000cc"] {
             ok(ValueKind::Color, raw);
         }
-        for raw in ["ff0000", "#ff000", "#ff00001", "#gg0000", "0x12345", "red", ""] {
+        for raw in [
+            "ff0000", "#ff000", "#ff00001", "#gg0000", "0x12345", "red", "",
+        ] {
             bad(ValueKind::Color, raw);
         }
     }

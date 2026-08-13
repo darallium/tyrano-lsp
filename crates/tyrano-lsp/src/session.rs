@@ -84,9 +84,9 @@ impl Session {
             self.db.apply_file_change(&path, FileChange::Deleted);
             return;
         }
-        // Scenario files need their text; other files (assets) only their
-        // existence.
-        let text = if path.extension() == Some("ks") {
+        // Scenario and JavaScript sources need their text; assets only need
+        // their existence.
+        let text = if matches!(path.extension(), Some("ks" | "js")) {
             std::fs::read_to_string(abs).unwrap_or_default()
         } else {
             String::new()
@@ -202,5 +202,40 @@ mod tests {
         session.sync_from_disk(&abs, false);
         let db = session.db();
         assert_eq!(db.project().scenario_files(db).len(), 1);
+    }
+
+    #[test]
+    fn watched_javascript_change_updates_plugin_facts() {
+        let tmp = TempDir::new("watch-js");
+        tmp.write(
+            "data/scenario/first.ks",
+            "[loadjs storage=plugin/demo.js]\n",
+        );
+        tmp.write(
+            "data/others/plugin/demo.js",
+            "TYRANO.kag.ftag.master_tag.before = {};\n",
+        );
+        let mut session = Session::open(&tmp.0).unwrap();
+        assert_eq!(
+            &*tyrano_semantic::project_javascript_tag_names(
+                session.db(),
+                session.db().project(),
+            ),
+            &["before"]
+        );
+
+        let abs = tmp.0.join("data/others/plugin/demo.js");
+        tmp.write(
+            "data/others/plugin/demo.js",
+            "TYRANO.kag.ftag.master_tag.after = {};\n",
+        );
+        session.sync_from_disk(&abs, true);
+        assert_eq!(
+            &*tyrano_semantic::project_javascript_tag_names(
+                session.db(),
+                session.db().project(),
+            ),
+            &["after"]
+        );
     }
 }

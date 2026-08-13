@@ -5,6 +5,7 @@ members = [
     "crates/tyrano-db",
     "crates/tyrano-lexer",
     "crates/tyrano-lsp",
+    "crates/tyrano-js-analysis",
     "crates/tyrano-module-resolver",
     "crates/tyrano-parser",
     "crates/tyrano-parser-core",

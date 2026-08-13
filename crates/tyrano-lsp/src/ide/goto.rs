@@ -3,7 +3,10 @@
 use tyrano_parser_core::{RefKind, SymbolKind, semantic_index};
 use tyrano_project::registry::{ValueKind, builtin_registry};
 use tyrano_project::{File, ProjectDb};
-use tyrano_semantic::{ProjectResolution, SemanticModel, TagResolution};
+use tyrano_semantic::{
+    ProjectResolution, SemanticModel, TagResolution, javascript_tag_at, js_definition_locations,
+    js_symbol_at, project_javascript_tag_definitions,
+};
 use tyrano_syntax::text::{TextRange, TextSize};
 
 use super::NavTarget;
@@ -11,6 +14,20 @@ use super::cursor::{CursorTarget, classify};
 
 /// Definition sites for the construct at `offset` in `file`.
 pub fn goto_definition(db: &dyn ProjectDb, file: File, offset: TextSize) -> Vec<NavTarget> {
+    // A registration property is itself the plugin tag's declaration.
+    if javascript_tag_at(db, file, offset).is_some() {
+        return Vec::new();
+    }
+    if let Some(symbol) = js_symbol_at(db, file, offset) {
+        return js_definition_locations(db, &symbol)
+            .into_iter()
+            .map(|location| NavTarget {
+                path: location.file.path(db).clone(),
+                range: location.range,
+            })
+            .collect();
+    }
+
     let model = SemanticModel::new(db, file);
     match classify(db, file, offset) {
         // The cursor already sits on a definition; nowhere else to go.
@@ -42,11 +59,18 @@ pub fn goto_definition(db: &dyn ProjectDb, file: File, offset: TextSize) -> Vec<
             TagResolution::Macro(def) => macro_def_target(db, def.file, &def.name)
                 .map(|t| vec![t])
                 .unwrap_or_default(),
+            TagResolution::Plugin => project_javascript_tag_definitions(db, db.project(), &name)
+                .into_iter()
+                .map(|location| NavTarget {
+                    path: location.file.path(db).clone(),
+                    range: location.range,
+                })
+                .collect(),
             _ => Vec::new(),
         },
-        CursorTarget::ParamValue { tag, param, value, .. } => {
-            value_targets(db, &model, &tag, &param, &value)
-        }
+        CursorTarget::ParamValue {
+            tag, param, value, ..
+        } => value_targets(db, &model, &tag, &param, &value),
         CursorTarget::ParamName { .. } | CursorTarget::None => Vec::new(),
     }
 }
@@ -54,12 +78,18 @@ pub fn goto_definition(db: &dyn ProjectDb, file: File, offset: TextSize) -> Vec<
 /// A target pointing at a definition's name range.
 fn def_target(db: &dyn ProjectDb, file: File, def: tyrano_parser_core::DefinitionId) -> NavTarget {
     let index = semantic_index(db, file.source(db));
-    NavTarget { path: file.path(db).clone(), range: index.definition(def).name_range }
+    NavTarget {
+        path: file.path(db).clone(),
+        range: index.definition(def).name_range,
+    }
 }
 
 /// A target pointing at the top of a file.
 fn file_target(db: &dyn ProjectDb, file: File) -> NavTarget {
-    NavTarget { path: file.path(db).clone(), range: TextRange::empty(0.into()) }
+    NavTarget {
+        path: file.path(db).clone(),
+        range: TextRange::empty(0.into()),
+    }
 }
 
 /// The winning `[macro name=…]` definition site of `name` in `file`.
@@ -96,8 +126,12 @@ fn value_targets(
     if value.starts_with('&') || value.starts_with('%') {
         return Vec::new();
     }
-    let Some(spec) = builtin_registry().get(tag) else { return Vec::new() };
-    let Some(param) = spec.param(param) else { return Vec::new() };
+    let Some(spec) = builtin_registry().get(tag) else {
+        return Vec::new();
+    };
+    let Some(param) = spec.param(param) else {
+        return Vec::new();
+    };
     match param.kind {
         ValueKind::Scenario => model
             .resolve_storage(value)
@@ -105,7 +139,12 @@ fn value_targets(
             .unwrap_or_default(),
         ValueKind::Asset(kind) => model
             .resolve_asset(kind, value)
-            .map(|path| vec![NavTarget { path, range: TextRange::empty(0.into()) }])
+            .map(|path| {
+                vec![NavTarget {
+                    path,
+                    range: TextRange::empty(0.into()),
+                }]
+            })
             .unwrap_or_default(),
         _ => Vec::new(),
     }
@@ -118,7 +157,12 @@ mod tests {
     use tyrano_project::testing::ProjectBuilder;
     use tyrano_project::{AssetKind, ProjectPath};
 
-    fn nav(db: &tyrano_project::ProjectDatabase, f: File, needle: &str, add: u32) -> Vec<NavTarget> {
+    fn nav(
+        db: &tyrano_project::ProjectDatabase,
+        f: File,
+        needle: &str,
+        add: u32,
+    ) -> Vec<NavTarget> {
         goto_definition(db, f, offset(db, f, needle, add))
     }
 
@@ -145,7 +189,10 @@ mod tests {
         assert_eq!(targets[0].path.as_str(), "data/scenario/b.ks");
         let b = file(&db, "data/scenario/b.ks");
         let text = b.source(&db).text(&db);
-        assert_eq!(&text[targets[0].range.start().into()..targets[0].range.end().into()], "top");
+        assert_eq!(
+            &text[targets[0].range.start().into()..targets[0].range.end().into()],
+            "top"
+        );
     }
 
     #[test]
@@ -185,7 +232,10 @@ mod tests {
     fn character_ref_finds_cross_file_definition() {
         let db = project(&[
             ("data/scenario/a.ks", "[chara_show name=akane]\n"),
-            ("data/scenario/chars.ks", "[chara_new name=akane storage=akane.png]\n"),
+            (
+                "data/scenario/chars.ks",
+                "[chara_new name=akane storage=akane.png]\n",
+            ),
         ]);
         let f = file(&db, "data/scenario/a.ks");
         let targets = nav(&db, f, "akane]", 2);
@@ -199,7 +249,9 @@ mod tests {
             .file("data/scenario/a.ks", "[bg storage=room.jpg]\n")
             .asset(AssetKind::BgImage, "room.jpg")
             .build();
-        let f = db.file(&ProjectPath::new("data/scenario/a.ks").unwrap()).unwrap();
+        let f = db
+            .file(&ProjectPath::new("data/scenario/a.ks").unwrap())
+            .unwrap();
         let targets = goto_definition(&db, f, offset(&db, f, "room.jpg", 2));
         assert_eq!(targets.len(), 1, "{targets:?}");
         assert_eq!(targets[0].path.as_str(), "data/bgimage/room.jpg");
@@ -210,5 +262,66 @@ mod tests {
         let db = project(&[("data/scenario/a.ks", "[jump storage=gone.ks target=*x]\n")]);
         let f = file(&db, "data/scenario/a.ks");
         assert!(nav(&db, f, "*x]", 1).is_empty(), "missing file: no target");
+    }
+
+    #[test]
+    fn javascript_lexical_use_goes_to_its_definition() {
+        let source = "[iscript]\nconst answer = 42; console.log(answer);\n[endscript]\n";
+        let db = project(&[("data/scenario/a.ks", source)]);
+        let file = file(&db, "data/scenario/a.ks");
+        let targets = nav(&db, file, "answer);", 2);
+        assert_eq!(targets.len(), 1, "{targets:#?}");
+        let text = file.source(&db).text(&db);
+        assert_eq!(
+            &text[usize::from(targets[0].range.start())..usize::from(targets[0].range.end())],
+            "answer"
+        );
+        assert!(usize::from(targets[0].range.start()) < source.find("answer);").unwrap());
+    }
+
+    #[test]
+    fn expression_engine_property_goes_to_cross_file_write() {
+        let db = project(&[
+            (
+                "data/scenario/setup.ks",
+                "[iscript]\nTYRANO.kag.stat.f.player.score = 1;\n[endscript]\n",
+            ),
+            (
+                "data/scenario/main.ks",
+                "[if cond='f.player.score > 0']ok[endif]\n",
+            ),
+        ]);
+        let main = file(&db, "data/scenario/main.ks");
+        let targets = nav(&db, main, "score", 2);
+        assert_eq!(targets.len(), 1, "{targets:#?}");
+        assert_eq!(targets[0].path.as_str(), "data/scenario/setup.ks");
+        let setup = file(&db, "data/scenario/setup.ks");
+        let text = setup.source(&db).text(&db);
+        assert_eq!(
+            &text[usize::from(targets[0].range.start())..usize::from(targets[0].range.end())],
+            "score"
+        );
+    }
+
+    #[test]
+    fn plugin_tag_goes_to_reachable_javascript_registration() {
+        let js = "TYRANO.kag.ftag.master_tag.custom_tag = {};\n";
+        let db = ProjectBuilder::new()
+            .file(
+                "data/scenario/a.ks",
+                "[loadjs storage=demo.js]\n[custom_tag]\n",
+            )
+            .javascript("data/others/demo.js", js)
+            .build();
+        let file = db
+            .file(&ProjectPath::new("data/scenario/a.ks").unwrap())
+            .unwrap();
+        let targets = goto_definition(&db, file, offset(&db, file, "custom_tag]", 3));
+        assert_eq!(targets.len(), 1, "{targets:#?}");
+        assert_eq!(targets[0].path.as_str(), "data/others/demo.js");
+        assert_eq!(
+            &js[usize::from(targets[0].range.start())..usize::from(targets[0].range.end())],
+            "custom_tag"
+        );
     }
 }

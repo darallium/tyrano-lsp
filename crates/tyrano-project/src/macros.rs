@@ -10,9 +10,9 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use crate::ProjectDb;
 use crate::files::{File, FileStatus};
 use crate::project::Project;
-use crate::ProjectDb;
 
 /// One project-visible macro definition site.
 ///
@@ -28,9 +28,8 @@ pub struct MacroDef {
 
 /// Every macro visible project-wide: name → winning definition.
 ///
-/// First definition wins, in [`Project::scenario_files`] order (sorted by
-/// path) and document order within a file — mirroring the engine, which
-/// keeps the first `[macro name=…]` it executes.
+/// First definition wins across scenario and plugin-library files, in path
+/// and document order. Reachability is handled by the semantic flow layer.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct MacroRegistry {
     by_name: BTreeMap<String, MacroDef>,
@@ -78,12 +77,18 @@ pub fn macro_names(db: &dyn ProjectDb, file: File) -> Arc<[String]> {
 #[salsa::tracked]
 pub fn macro_registry(db: &dyn ProjectDb, project: Project) -> Arc<MacroRegistry> {
     let mut registry = MacroRegistry::default();
-    for &file in project.scenario_files(db) {
+    let mut files = project.scenario_files(db).clone();
+    files.extend(project.library_files(db));
+    files.sort_by(|a, b| a.path(db).cmp(b.path(db)));
+    for file in files {
         for name in macro_names(db, file).iter() {
             registry
                 .by_name
                 .entry(name.clone())
-                .or_insert_with(|| MacroDef { file, name: name.clone() });
+                .or_insert_with(|| MacroDef {
+                    file,
+                    name: name.clone(),
+                });
         }
     }
     Arc::new(registry)
@@ -120,15 +125,53 @@ mod tests {
         assert_eq!(registry.len(), 2);
         let a = db.file(&path("data/scenario/a.ks")).unwrap();
         let b = db.file(&path("data/scenario/b.ks")).unwrap();
-        assert_eq!(registry.get("greet"), Some(&MacroDef { file: a, name: "greet".into() }));
-        assert_eq!(registry.get("bye"), Some(&MacroDef { file: b, name: "bye".into() }));
+        assert_eq!(
+            registry.get("greet"),
+            Some(&MacroDef {
+                file: a,
+                name: "greet".into()
+            })
+        );
+        assert_eq!(
+            registry.get("bye"),
+            Some(&MacroDef {
+                file: b,
+                name: "bye".into()
+            })
+        );
         assert_eq!(registry.get("nope"), None);
+    }
+
+    #[test]
+    fn collects_macros_from_plugin_libraries() {
+        let db = ProjectBuilder::new()
+            .file("data/scenario/first.ks", "[plugin name=demo]\n")
+            .library(
+                "data/others/plugin/demo/init.ks",
+                "[macro name=plugin_command][endmacro]\n",
+            )
+            .build();
+
+        let registry = project_macros(&db);
+        let library = db
+            .file(&path("data/others/plugin/demo/init.ks"))
+            .unwrap();
+        assert_eq!(
+            registry.get("plugin_command"),
+            Some(&MacroDef {
+                file: library,
+                name: "plugin_command".into(),
+            })
+        );
     }
 
     #[test]
     fn non_macro_edit_keeps_registry_memo() {
         let mut db = ProjectBuilder::new()
-            .file("data/scenario/a.ks", "*start\n[macro name=greet]hello[endmacro]\n")
+            .file(
+                "data/scenario/a.ks",
+                "*start\n[macro name=greet]hello[endmacro]\n",
+            )
             .build();
         let before = project_macros(&db);
 

@@ -40,6 +40,8 @@ pub enum TagResolution {
     Builtin(&'static TagSpec),
     /// A file-local or project-wide macro.
     Macro(MacroDef),
+    /// A custom tag registered by reachable plugin JavaScript.
+    Plugin,
     Unknown,
 }
 
@@ -103,7 +105,10 @@ impl<'db> SemanticModel<'db> {
     /// registers local macros immediately), then the project registry.
     pub fn resolve_macro(&self, name: &str) -> Option<MacroDef> {
         if self.index().macro_(name).is_some() {
-            return Some(MacroDef { file: self.file, name: name.to_string() });
+            return Some(MacroDef {
+                file: self.file,
+                name: name.to_string(),
+            });
         }
         tyrano_project::project_macros(self.db).get(name).cloned()
     }
@@ -115,6 +120,12 @@ impl<'db> SemanticModel<'db> {
         }
         match self.resolve_macro(name) {
             Some(def) => TagResolution::Macro(def),
+            None if crate::project_javascript_tag_names(self.db, self.db.project())
+                .iter()
+                .any(|known| known == name) =>
+            {
+                TagResolution::Plugin
+            }
             None => TagResolution::Unknown,
         }
     }
@@ -126,8 +137,13 @@ impl<'db> SemanticModel<'db> {
         let settings = project.settings(self.db);
         let index = project.asset_index(self.db);
         settings.asset_roots.get(&kind)?.iter().find_map(|root| {
-            let path = root.join(name).ok()?;
-            index.contains(kind, &path).then_some(path)
+            let has_parent = name.replace('\\', "/").split('/').any(|part| part == "..");
+            let path = if has_parent {
+                root.resolve_relative(name).ok()?
+            } else {
+                root.join(name).ok()?
+            };
+            (index.contains(kind, &path) || has_parent && index.contains_any(&path)).then_some(path)
         })
     }
 
@@ -144,7 +160,11 @@ impl<'db> SemanticModel<'db> {
     /// Every reference of the file lifted to its project-level
     /// resolution, in document order (parallel to `index().uses()`).
     pub fn resolved_references(&self) -> Vec<ProjectResolution> {
-        self.index().uses().iter().map(|use_| self.lift(&use_.resolution)).collect()
+        self.index()
+            .uses()
+            .iter()
+            .map(|use_| self.lift(&use_.resolution))
+            .collect()
     }
 
     fn lift(&self, resolution: &Resolution) -> ProjectResolution {
@@ -153,7 +173,9 @@ impl<'db> SemanticModel<'db> {
             Resolution::Unknown => ProjectResolution::Unknown,
             Resolution::External { storage, target } => {
                 let Some(file) = self.resolve_storage(storage) else {
-                    return ProjectResolution::FileNotFound { storage: storage.clone() };
+                    return ProjectResolution::FileNotFound {
+                        storage: storage.clone(),
+                    };
                 };
                 // `External::target` is the raw cooked value (`"*top"`);
                 // only a `*`-prefixed target is a label reference.
@@ -178,7 +200,9 @@ impl<'db> SemanticModel<'db> {
 
     /// Scenario files that reference this file.
     pub fn dependents(&self) -> Vec<File> {
-        project_dependency_graph(self.db, self.db.project()).dependents(self.file).to_vec()
+        project_dependency_graph(self.db, self.db.project())
+            .dependents(self.file)
+            .to_vec()
     }
 
     /// Every diagnostic of this file, file-local and cross-file merged

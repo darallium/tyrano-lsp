@@ -9,6 +9,7 @@
 use std::fmt::Write as _;
 use std::path::PathBuf;
 use std::process::ExitCode;
+use std::time::{Duration, Instant};
 
 use clap::{Parser as ClapParser, Subcommand};
 use tyrano_analysis::Item;
@@ -53,11 +54,23 @@ enum Command {
     Expr { expression: String },
     /// Lower to the semantic model: items + semantic diagnostics.
     Analyze { file: PathBuf },
+    /// Load and analyze every scenario, plugin-library, and JavaScript source.
+    Project {
+        /// Project root containing the `data/` directory.
+        root: PathBuf,
+        /// Fail when analysis takes longer than this many milliseconds.
+        #[arg(long)]
+        max_ms: Option<u64>,
+        /// Print every diagnostic with its project-relative file path.
+        #[arg(long)]
+        diagnostics: bool,
+    },
 }
 
 fn main() -> ExitCode {
+    let started = Instant::now();
     let cli = Cli::parse();
-    match run(&cli) {
+    match run(&cli, started) {
         Ok(code) => code,
         Err(msg) => {
             eprintln!("error: {msg}");
@@ -66,8 +79,10 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(cli: &Cli) -> Result<ExitCode, String> {
-    let opts = ParseOptions { loose_endscript_termination: !cli.strict };
+fn run(cli: &Cli, started: Instant) -> Result<ExitCode, String> {
+    let opts = ParseOptions {
+        loose_endscript_termination: !cli.strict,
+    };
     let lang = if cli.lang == "ja" { Lang::Ja } else { Lang::En };
 
     match &cli.command {
@@ -75,12 +90,18 @@ fn run(cli: &Cli) -> Result<ExitCode, String> {
             let source = read(file)?;
             let lexed = lex(
                 &source,
-                &LexOptions { loose_endscript_termination: !cli.strict },
+                &LexOptions {
+                    loose_endscript_termination: !cli.strict,
+                },
             );
             let mut pos = 0usize;
             for tok in &lexed.tokens {
                 let end = pos + tok.len.raw() as usize;
-                println!("{pos:>5}..{end:<5} {:<14} {}", tok.kind.to_string(), preview(&source[pos..end]));
+                println!(
+                    "{pos:>5}..{end:<5} {:<14} {}",
+                    tok.kind.to_string(),
+                    preview(&source[pos..end])
+                );
                 pos = end;
             }
             println!("-- {} tokens, {} bytes covered", lexed.tokens.len(), pos);
@@ -89,7 +110,10 @@ fn run(cli: &Cli) -> Result<ExitCode, String> {
         Command::Tree { file, trivia } => {
             let source = read(file)?;
             let parsed = parse_with_options(&source, &opts);
-            print!("{}", tree_dump(&SyntaxNode::new_root(parsed.green().clone()), *trivia));
+            print!(
+                "{}",
+                tree_dump(&SyntaxNode::new_root(parsed.green().clone()), *trivia)
+            );
             Ok(ExitCode::SUCCESS)
         }
         Command::Diag { file } => {
@@ -106,7 +130,11 @@ fn run(cli: &Cli) -> Result<ExitCode, String> {
                 println!("{}", render_with_location(d, lang, parsed.source()));
             }
             println!("{errors} error(s), {warnings} warning(s)");
-            Ok(if errors > 0 { ExitCode::FAILURE } else { ExitCode::SUCCESS })
+            Ok(if errors > 0 {
+                ExitCode::FAILURE
+            } else {
+                ExitCode::SUCCESS
+            })
         }
         Command::Roundtrip { file } => {
             let source = read(file)?;
@@ -164,6 +192,131 @@ fn run(cli: &Cli) -> Result<ExitCode, String> {
                 ExitCode::FAILURE
             })
         }
+        Command::Project {
+            root,
+            max_ms,
+            diagnostics: print_diagnostics,
+        } => {
+            use tyrano_project::ProjectDb as _;
+
+            let metadata = tyrano_project::load_project(root)
+                .map_err(|e| format!("cannot load project {}: {e}", root.display()))?;
+            let db = tyrano_project::ProjectDatabase::new(metadata);
+            let results = tyrano_semantic::check_project(&db);
+            let js = tyrano_semantic::analyze_project_javascript(&db);
+            let js_navigation = tyrano_semantic::project_js_navigation_index(&db, db.project());
+            let plugin_tags = tyrano_semantic::project_javascript_tag_names(&db, db.project());
+            let variables = tyrano_semantic::analyze_project_variables(&db);
+            let flow = &variables.flow;
+            if *print_diagnostics {
+                for (file, file_diagnostics) in &results {
+                    let path = file.path(&db);
+                    for diagnostic in file_diagnostics.iter() {
+                        println!(
+                            "{}:{}..{} {} {}",
+                            path,
+                            u32::from(diagnostic.range.start()),
+                            u32::from(diagnostic.range.end()),
+                            diagnostic.code,
+                            diagnostic.message,
+                        );
+                    }
+                }
+                for issue in &variables.issues {
+                    println!(
+                        "{}:{}..{} {:?} {}",
+                        issue.file.path(&db),
+                        u32::from(issue.range.start()),
+                        u32::from(issue.range.end()),
+                        issue.kind,
+                        issue.path.render(),
+                    );
+                }
+                println!("plugin tags: {}", plugin_tags.join(", "));
+            }
+            let files = db.project().scenario_files(&db).len();
+            let library_files = db.project().library_files(&db).len();
+            let javascript_files = db.project().javascript_files(&db).len();
+            let diagnostics: usize = results.iter().map(|(_, ds)| ds.len()).sum();
+            let js_regions: usize = js.iter().map(|(_, analysis)| analysis.region_count()).sum();
+            let parsed_js_regions: usize = js
+                .iter()
+                .map(|(_, analysis)| analysis.parsed_region_count())
+                .sum();
+            let js_effects: usize = js.iter().map(|(_, analysis)| analysis.effect_count()).sum();
+            let mut effect_counts = [0usize; 4];
+            let mut deferred_effects = 0usize;
+            for effect in js
+                .iter()
+                .flat_map(|(_, analysis)| &analysis.regions)
+                .flat_map(|region| &region.facts.effects)
+            {
+                let index = match effect.kind {
+                    tyrano_js_analysis::EffectKind::Define => 0,
+                    tyrano_js_analysis::EffectKind::Read => 1,
+                    tyrano_js_analysis::EffectKind::Write => 2,
+                    tyrano_js_analysis::EffectKind::Execute => 3,
+                };
+                effect_counts[index] += 1;
+                deferred_effects += usize::from(effect.deferred);
+            }
+            let elapsed = started.elapsed();
+            println!(
+                "-- {files} scenario file(s), {library_files} library scenario file(s), {javascript_files} JavaScript file(s), {diagnostics} diagnostic(s), JavaScript {parsed_js_regions}/{js_regions} region(s), {js_effects} effect(s) [D={}/R={}/W={}/X={}, deferred={deferred_effects}], {} navigation occurrence(s), {} plugin tag(s), flow {} unit(s)/{} edge(s)/{} event edge(s)/{} dynamic expansion edge(s)/{} unresolved edge(s)/{} iteration(s), variables {} path(s)/{} derived definition(s)/{} definite issue(s)/{} possible issue(s)/{} iteration(s), {:.3} ms",
+                effect_counts[0],
+                effect_counts[1],
+                effect_counts[2],
+                effect_counts[3],
+                js_navigation.occurrence_count(),
+                plugin_tags.len(),
+                flow.units.len(),
+                flow.edges.len(),
+                flow.event_edge_count(),
+                flow.dynamic_edge_count(),
+                flow.unresolved_edge_count(),
+                flow.iterations,
+                variables.paths.len(),
+                variables.definitions.len(),
+                variables.definite_issue_count(),
+                variables.possible_issue_count(),
+                variables.iterations,
+                elapsed.as_secs_f64() * 1_000.0,
+            );
+            if parsed_js_regions != js_regions {
+                for (file, analysis) in &js {
+                    for region in analysis
+                        .regions
+                        .iter()
+                        .filter(|region| !region.facts.parsed)
+                    {
+                        eprintln!(
+                            "{}:{}..{} JavaScript parse failure: {}",
+                            file.path(&db),
+                            u32::from(region.range.start()),
+                            u32::from(region.range.end()),
+                            region
+                                .facts
+                                .diagnostics
+                                .first()
+                                .map(String::as_str)
+                                .unwrap_or("unknown parser error"),
+                        );
+                    }
+                }
+                return Err(format!(
+                    "JavaScript coverage incomplete: {parsed_js_regions}/{js_regions} regions parsed"
+                ));
+            }
+            if let Some(max_ms) = max_ms
+                && elapsed > Duration::from_millis(*max_ms)
+            {
+                return Err(format!(
+                    "project analysis exceeded {max_ms} ms: {:.3} ms",
+                    elapsed.as_secs_f64() * 1_000.0,
+                ));
+            }
+            Ok(ExitCode::SUCCESS)
+        }
     }
 }
 
@@ -210,7 +363,13 @@ fn dump_node(node: &SyntaxNode, depth: usize, trivia: bool, out: &mut String) {
             SyntaxElement::Node(n) => dump_node(&n, depth + 1, trivia, out),
             SyntaxElement::Token(t) => {
                 let pad = "  ".repeat(depth + 1);
-                let _ = write!(out, "{pad}{}@{:?} {}", t.kind(), t.text_range(), preview(t.text()));
+                let _ = write!(
+                    out,
+                    "{pad}{}@{:?} {}",
+                    t.kind(),
+                    t.text_range(),
+                    preview(t.text())
+                );
                 if t.is_missing() {
                     let _ = write!(out, " (missing)");
                 }
@@ -305,10 +464,19 @@ fn item_line(item: &Item) -> String {
         Item::Chara(c) => format!("chara   {:?}:{:?} @{:?}", c.name, c.face, c.range),
         Item::Text(t) => format!("text    {} @{:?}", preview(&t.text), t.range),
         Item::Comment(c) => {
-            format!("comment {} block={} @{:?}", preview(&c.text), c.is_block, c.range)
+            format!(
+                "comment {} block={} @{:?}",
+                preview(&c.text),
+                c.is_block,
+                c.range
+            )
         }
         Item::Script(s) => format!("script  {} line(s) @{:?}", s.code.lines().count(), s.range),
-        Item::Html(h) => format!("html    {} line(s) @{:?}", h.content.lines().count(), h.range),
+        Item::Html(h) => format!(
+            "html    {} line(s) @{:?}",
+            h.content.lines().count(),
+            h.range
+        ),
     }
 }
 

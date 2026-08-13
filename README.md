@@ -23,6 +23,7 @@ Tyranoscript LSPは、ビジュアルノベルで使用されるスクリプト�
 - [x] **シンタックスハイライト**: シンタックスに特化した色で読みやすさを向上させます。
 - [x] **定義へ移動**: 関数や変数の定義に素早く移動できます。
 - [x] **ホバー情報**: 関数や変数に関する情報をホバーで取得します。
+- [x] **javascript解析**: iscript内やcond属性に書かれたjavascriptも解析できます。
 
 ## インストール
 1. リポジトリをクローンします: `git clone https://github.com/darallium/tyrano-lsp.git`

@@ -1,0 +1,12 @@
+[package]
+name = "tyrano-js-analysis"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+
+[dependencies]
+oxc_allocator = "=0.144.0"
+oxc_ast = "=0.144.0"
+oxc_parser = "=0.144.0"
+oxc_semantic = "=0.144.0"
+oxc_span = "=0.144.0"

@@ -34,7 +34,12 @@ impl TestServer {
 
         let (server_conn, client) = Connection::memory();
         let server = std::thread::spawn(move || tyrano_lsp::server::run(server_conn));
-        let mut this = TestServer { client, root, server: Some(server), next_id: 0 };
+        let mut this = TestServer {
+            client,
+            root,
+            server: Some(server),
+            next_id: 0,
+        };
 
         let root_uri = lsp_types::Url::from_file_path(&this.root).unwrap();
         let init = this.request(
@@ -70,11 +75,20 @@ impl TestServer {
         let id = RequestId::from(self.next_id);
         self.client
             .sender
-            .send(Message::Request(Request { id: id.clone(), method: method.to_string(), params }))
+            .send(Message::Request(Request {
+                id: id.clone(),
+                method: method.to_string(),
+                params,
+            }))
             .unwrap();
         loop {
             match self.recv() {
-                Message::Response(Response { id: got, result, error, .. }) if got == id => {
+                Message::Response(Response {
+                    id: got,
+                    result,
+                    error,
+                    ..
+                }) if got == id => {
                     assert!(error.is_none(), "error response: {error:?}");
                     return result.unwrap_or(Value::Null);
                 }
@@ -91,7 +105,10 @@ impl TestServer {
                 if n.method == lsp_types::notification::PublishDiagnostics::METHOD
                     && n.params["uri"] == json!(uri)
                 {
-                    return n.params["diagnostics"].as_array().cloned().unwrap_or_default();
+                    return n.params["diagnostics"]
+                        .as_array()
+                        .cloned()
+                        .unwrap_or_default();
                 }
             }
         }
@@ -126,12 +143,15 @@ impl Drop for TestServer {
             method: "shutdown".to_string(),
             params: json!(null),
         }));
-        let _ = self
-            .client
-            .sender
-            .send(Message::Notification(Notification { method: "exit".to_string(), params: json!(null) }));
+        let _ = self.client.sender.send(Message::Notification(Notification {
+            method: "exit".to_string(),
+            params: json!(null),
+        }));
         if let Some(handle) = self.server.take() {
-            handle.join().expect("server thread").expect("server loop exits cleanly");
+            handle
+                .join()
+                .expect("server thread")
+                .expect("server loop exits cleanly");
         }
         let _ = std::fs::remove_dir_all(&self.root);
     }
@@ -174,7 +194,10 @@ fn hover_across_files_over_protocol() {
         doc_position(&server, "data/scenario/main.ks", 1, 32),
     );
     let text = hover["contents"]["value"].as_str().expect("markdown hover");
-    assert!(text.contains("scene2.ks"), "hover names the target file: {text}");
+    assert!(
+        text.contains("scene2.ks"),
+        "hover names the target file: {text}"
+    );
 }
 
 #[test]
@@ -187,8 +210,14 @@ fn goto_definition_lands_in_other_file() {
     );
     let locations = response.as_array().expect("array response");
     assert_eq!(locations.len(), 1, "{response}");
-    assert_eq!(locations[0]["uri"], json!(server.uri("data/scenario/scene2.ks")));
-    assert_eq!(locations[0]["range"]["start"], json!({ "line": 0, "character": 1 }));
+    assert_eq!(
+        locations[0]["uri"],
+        json!(server.uri("data/scenario/scene2.ks"))
+    );
+    assert_eq!(
+        locations[0]["range"]["start"],
+        json!({ "line": 0, "character": 1 })
+    );
 }
 
 #[test]
@@ -211,7 +240,10 @@ fn completion_offers_cross_file_macro() {
     let items = response.as_array().expect("array response");
     let labels: Vec<&str> = items.iter().filter_map(|i| i["label"].as_str()).collect();
     assert!(labels.contains(&"jump"), "builtin tags offered: {labels:?}");
-    assert!(labels.contains(&"greet"), "cross-file macro offered: {labels:?}");
+    assert!(
+        labels.contains(&"greet"),
+        "cross-file macro offered: {labels:?}"
+    );
 }
 
 #[test]
@@ -230,8 +262,95 @@ fn references_span_the_project() {
     let locations = response.as_array().expect("array response");
     assert_eq!(locations.len(), 2, "decl + cross-file use: {response}");
     assert!(
-        locations.iter().any(|l| l["uri"] == json!(server.uri("data/scenario/main.ks"))),
+        locations
+            .iter()
+            .any(|l| l["uri"] == json!(server.uri("data/scenario/main.ks"))),
         "{response}"
+    );
+}
+
+#[test]
+fn javascript_property_navigation_crosses_expr_iscript_and_files() {
+    const SETUP: &str = "[iscript]\nf.player.score = 1;\n[endscript]\n";
+    const VIEW: &str = "[if cond='TYRANO.kag.stat.f.player.score > 0']ok[endif]\n";
+    let mut server = TestServer::start(
+        "js-navigation",
+        &[
+            ("data/scenario/setup.ks", SETUP),
+            ("data/scenario/view.ks", VIEW),
+        ],
+    );
+    server.open("data/scenario/view.ks", VIEW);
+
+    let definition = server.request(
+        "textDocument/definition",
+        doc_position(&server, "data/scenario/view.ks", 0, 40),
+    );
+    let locations = definition.as_array().expect("array response");
+    assert_eq!(locations.len(), 1, "{definition}");
+    assert_eq!(
+        locations[0]["uri"],
+        json!(server.uri("data/scenario/setup.ks"))
+    );
+    assert_eq!(
+        locations[0]["range"]["start"],
+        json!({ "line": 1, "character": 9 })
+    );
+
+    let references = server.request(
+        "textDocument/references",
+        json!({
+            "textDocument": { "uri": server.uri("data/scenario/view.ks") },
+            "position": { "line": 0, "character": 40 },
+            "context": { "includeDeclaration": false },
+        }),
+    );
+    assert_eq!(references.as_array().unwrap().len(), 2, "{references}");
+}
+
+#[test]
+fn plugin_tag_navigation_lands_on_javascript_registration() {
+    const SCENARIO: &str = "[loadjs storage=demo.js]\n[custom_tag]\n";
+    const PLUGIN: &str = "TYRANO.kag.ftag.master_tag.custom_tag = {};\n";
+    let mut server = TestServer::start(
+        "plugin-navigation",
+        &[
+            ("data/scenario/main.ks", SCENARIO),
+            ("data/others/demo.js", PLUGIN),
+        ],
+    );
+    server.open("data/scenario/main.ks", SCENARIO);
+
+    let definition = server.request(
+        "textDocument/definition",
+        doc_position(&server, "data/scenario/main.ks", 1, 4),
+    );
+    let locations = definition.as_array().expect("array response");
+    assert_eq!(locations.len(), 1, "{definition}");
+    assert_eq!(
+        locations[0]["uri"],
+        json!(server.uri("data/others/demo.js"))
+    );
+    assert_eq!(
+        locations[0]["range"]["start"],
+        json!({ "line": 0, "character": 27 })
+    );
+
+    let references = server.request(
+        "textDocument/references",
+        json!({
+            "textDocument": { "uri": server.uri("data/scenario/main.ks") },
+            "position": { "line": 1, "character": 4 },
+            "context": { "includeDeclaration": true },
+        }),
+    );
+    let locations = references.as_array().unwrap();
+    assert_eq!(locations.len(), 2, "{references}");
+    assert!(
+        locations
+            .iter()
+            .any(|location| location["uri"] == json!(server.uri("data/others/demo.js"))),
+        "{references}"
     );
 }
 
@@ -251,9 +370,10 @@ fn diagnostics_follow_edits_and_cross_file_changes() {
     );
     let broken = server.wait_diagnostics(&main_uri);
     assert!(
-        broken
-            .iter()
-            .any(|d| d["message"].as_str().unwrap_or_default().contains("scene2.ks")),
+        broken.iter().any(|d| d["message"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("scene2.ks")),
         "cross-file breakage reported in main.ks: {broken:?}"
     );
 }
@@ -278,7 +398,10 @@ fn positions_use_utf16_columns() {
         "*開始\nこんにちは[jump target=*開始]\n",
     )];
     let mut server = TestServer::start("utf16", server_files);
-    server.open("data/scenario/jp.ks", "*開始\nこんにちは[jump target=*開始]\n");
+    server.open(
+        "data/scenario/jp.ks",
+        "*開始\nこんにちは[jump target=*開始]\n",
+    );
     // Line 1: こんにちは = 5 UTF-16 units, then `[jump target=*開始]`;
     // the `開` of the target sits at UTF-16 column 5+14 = 19... target=* is
     // 13 chars after `[jump ` (6). 5 + 1 + 5 + 1 + 7 + 1 = hover on col 20.
@@ -286,6 +409,8 @@ fn positions_use_utf16_columns() {
         "textDocument/hover",
         doc_position(&server, "data/scenario/jp.ks", 1, 20),
     );
-    let text = hover["contents"]["value"].as_str().expect("markdown hover for 開始");
+    let text = hover["contents"]["value"]
+        .as_str()
+        .expect("markdown hover for 開始");
     assert!(text.contains("開始"), "{text}");
 }

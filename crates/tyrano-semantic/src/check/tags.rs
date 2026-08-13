@@ -29,6 +29,7 @@ pub(crate) fn check_tags(db: &dyn ProjectDb, file: File) -> Vec<FileDiagnostic> 
             // Macro calls: parameters flow into `mp` untyped; nothing to
             // validate against.
             TagResolution::Macro(_) => {}
+            TagResolution::Plugin => {}
             TagResolution::Unknown => out.push(FileDiagnostic {
                 code: codes::UNKNOWN_TAG,
                 severity: Severity::Warning,

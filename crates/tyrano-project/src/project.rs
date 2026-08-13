@@ -72,6 +72,10 @@ pub struct ProjectSettings {
     /// resolution and [`Project::scenario_files`] membership both use
     /// these.
     pub scenario_roots: Vec<ProjectPath>,
+    /// Roots scanned for auxiliary `.ks` and `.js` sources (plugins and
+    /// files loaded through `[loadjs]`). Scenario roots remain the only
+    /// roots used by `storage=` resolution.
+    pub source_roots: Vec<ProjectPath>,
     /// Directories searched (in order) per asset namespace.
     pub asset_roots: BTreeMap<AssetKind, Vec<ProjectPath>>,
     /// Tree-shape options for every scenario file.
@@ -87,6 +91,7 @@ impl Default for ProjectSettings {
         let data = ProjectPath::new("data").expect("static path");
         ProjectSettings {
             scenario_roots: vec![data.join("scenario").expect("static path")],
+            source_roots: vec![data.clone()],
             asset_roots: AssetKind::ALL
                 .into_iter()
                 .map(|k| (k, vec![data.join(k.dir_name()).expect("static path")]))
@@ -114,6 +119,10 @@ impl AssetIndex {
     /// Whether `path` exists in namespace `kind`.
     pub fn contains(&self, kind: AssetKind, path: &ProjectPath) -> bool {
         self.by_kind.get(&kind).is_some_and(|s| s.contains(path))
+    }
+
+    pub fn contains_any(&self, path: &ProjectPath) -> bool {
+        self.by_kind.values().any(|paths| paths.contains(path))
     }
 
     /// All paths of namespace `kind`, in sorted order.
@@ -145,6 +154,12 @@ pub struct Project {
     /// the "included files" set for project-wide queries.
     #[returns(ref)]
     pub scenario_files: Vec<File>,
+    /// `.ks` sources outside scenario roots (normally plugin entry files).
+    #[returns(ref)]
+    pub library_files: Vec<File>,
+    /// Standalone `.js` sources under [`ProjectSettings::source_roots`].
+    #[returns(ref)]
+    pub javascript_files: Vec<File>,
     /// Which asset files exist, per namespace.
     #[returns(ref)]
     pub asset_index: AssetIndex,
@@ -159,6 +174,10 @@ pub struct ProjectMetadata {
     /// Scenario sources as `(path, text)`; order does not matter (the
     /// database sorts by path).
     pub scenario_sources: Vec<(ProjectPath, String)>,
+    /// Auxiliary `.ks` sources outside scenario roots.
+    pub library_sources: Vec<(ProjectPath, String)>,
+    /// Standalone JavaScript sources.
+    pub javascript_sources: Vec<(ProjectPath, String)>,
     /// Full project-relative asset paths per namespace.
     pub assets: BTreeMap<AssetKind, BTreeSet<ProjectPath>>,
 }

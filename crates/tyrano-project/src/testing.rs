@@ -35,7 +35,25 @@ impl ProjectBuilder {
     /// Adds a scenario source at a full project-relative path.
     pub fn file(mut self, path: &str, text: &str) -> ProjectBuilder {
         let path = ProjectPath::new(path).expect("valid test path");
-        self.metadata.scenario_sources.push((path, text.to_string()));
+        self.metadata
+            .scenario_sources
+            .push((path, text.to_string()));
+        self
+    }
+
+    /// Adds a standalone JavaScript source.
+    pub fn javascript(mut self, path: &str, text: &str) -> ProjectBuilder {
+        let path = ProjectPath::new(path).expect("valid test path");
+        self.metadata
+            .javascript_sources
+            .push((path, text.to_string()));
+        self
+    }
+
+    /// Adds an auxiliary scenario source, such as a plugin `init.ks`.
+    pub fn library(mut self, path: &str, text: &str) -> ProjectBuilder {
+        let path = ProjectPath::new(path).expect("valid test path");
+        self.metadata.library_sources.push((path, text.to_string()));
         self
     }
 

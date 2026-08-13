@@ -3,6 +3,7 @@ import * as os from "os";
 import * as path from "path";
 import * as vscode from "vscode";
 import {
+  DocumentSelector,
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
@@ -11,6 +12,7 @@ import {
 
 let client: LanguageClient | undefined;
 let outputChannel: vscode.OutputChannel | undefined;
+let sourceWatchers: vscode.FileSystemWatcher[] = [];
 
 /**
  * Resolves the path to the `tyrano-lsp` server executable.
@@ -91,11 +93,21 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
   };
 
   const config = vscode.workspace.getConfiguration("tyranoscript");
+  const documentSelector: DocumentSelector = [
+    { scheme: "file", language: "tyranoscript" },
+  ];
+  if (config.get<boolean>("javascript.navigation.enabled", true)) {
+    documentSelector.push({
+      scheme: "file",
+      language: "javascript",
+      pattern: "**/data/**/*.js",
+    });
+  }
 
   const clientOptions: LanguageClientOptions = {
-    documentSelector: [{ scheme: "file", language: "tyranoscript" }],
+    documentSelector,
     synchronize: {
-      fileEvents: vscode.workspace.createFileSystemWatcher("**/*.ks"),
+      fileEvents: sourceWatchers,
     },
     outputChannel,
     traceOutputChannel: outputChannel,
@@ -134,8 +146,22 @@ async function restartServer(context: vscode.ExtensionContext): Promise<void> {
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
+  sourceWatchers = [
+    vscode.workspace.createFileSystemWatcher("**/*.ks"),
+    vscode.workspace.createFileSystemWatcher("**/data/**/*.js"),
+  ];
   context.subscriptions.push(
-    vscode.commands.registerCommand("tyranoscript.restartServer", () => restartServer(context))
+    ...sourceWatchers,
+    vscode.commands.registerCommand("tyranoscript.restartServer", () => restartServer(context)),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (
+        event.affectsConfiguration("tyranoscript.server.path") ||
+        event.affectsConfiguration("tyranoscript.trace.server") ||
+        event.affectsConfiguration("tyranoscript.javascript.navigation.enabled")
+      ) {
+        void restartServer(context);
+      }
+    })
   );
 
   await startClient(context);
@@ -143,4 +169,5 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
 export async function deactivate(): Promise<void> {
   await stopClient();
+  sourceWatchers = [];
 }

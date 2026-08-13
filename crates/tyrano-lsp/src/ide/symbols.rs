@@ -17,6 +17,9 @@ pub struct DocSymbol {
 
 /// All definitions of `file` in document order.
 pub fn document_symbols(db: &dyn ProjectDb, file: File) -> Vec<DocSymbol> {
+    if file.path(db).extension() == Some("js") {
+        return Vec::new();
+    }
     let index = semantic_index(db, file.source(db));
     let mut out: Vec<DocSymbol> = index
         .symbols()

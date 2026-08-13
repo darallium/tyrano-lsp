@@ -23,7 +23,7 @@
 | [实时诊断](#-实时诊断) | 标记未知标签、无法解析的跳转、缺失素材等 | 需要 |
 | [悬停信息](#-悬停信息) | 弹出标签、参数、标签定义的说明 | 需要 |
 | [输入补全](#-输入补全) | 提示标签名、参数名与参数值 | 需要 |
-| [跳转到定义 / 查找引用](#-跳转到定义--查找引用) | 跨文件追踪标签与宏 | 需要 |
+| [跳转到定义 / 查找引用](#-跳转到定义--查找引用) | 跨源文件追踪标签、宏、内嵌 JS 与插件标签 | 需要 |
 | [大纲 / 导航栏](#-大纲--导航栏) | 标签、宏、角色的可导航列表 | 需要 |
 
 > 标注 “需要” 的功能依赖 `tyrano-lsp` 语言服务器，安装方法见[安装与配置](#-安装与配置)。**语法高亮仅凭扩展本身即可立即生效**。
@@ -94,8 +94,12 @@
 
 ### 🔗 跳转到定义 / 查找引用
 
-在任意标签或宏上，可使用**跳转到定义**（`F12`）、**就地速览（Peek）**（`Alt+F12`）与**查找所有引用**（`Shift+F12`）。
+在标签、宏、`iscript` / `cond` / `exp` 中的变量以及插件标签上，可使用**跳转到定义**（`F12`）、**就地速览（Peek）**（`Alt+F12`）与**查找所有引用**（`Shift+F12`）。
 通过 `storage=` 指向另一文件的跳转也会被解析，因此可以**跨文件追踪剧本流程**。
+
+- `f` / `sf` / `tf` / `mp` 的属性可跨内嵌表达式、`iscript` 与 `data/` 下的外部 `.js` 文件追踪。
+- `[custom_tag]` 可跳转到 `TYRANO.kag.ftag.master_tag.custom_tag` 等 JavaScript 注册位置。
+- 也可从外部 `.js` 文件发起导航，同时文档仍保持 VS Code 的标准 JavaScript 语言模式。
 
 ![速览另一文件中的标签定义](/editors/code/images/definition.png)
 
@@ -159,6 +163,7 @@ cargo build --release -p tyrano-lsp
 |-------|--------|------|
 | `tyranoscript.server.path` | `""` | `tyrano-lsp` 可执行文件的绝对路径。为空时按上述顺序自动检测。 |
 | `tyranoscript.trace.server` | `off` | VS Code 与服务器之间的通信日志级别（`off` / `messages` / `verbose`），便于提交问题报告。 |
+| `tyranoscript.javascript.navigation.enabled` | `true` | 在 `data/**/*.js` 中启用 TyranoScript 定义与引用提供器。若与其他 JavaScript 扩展冲突可关闭。 |
 
 ### 命令
 

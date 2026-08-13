@@ -19,8 +19,13 @@ use crate::project::{ProjectMetadata, ProjectSettings};
 /// whose paths do not normalize (or scenario files that are not UTF-8)
 /// are reported as errors rather than silently skipped.
 pub fn load_project_with(root: &Path, settings: ProjectSettings) -> io::Result<ProjectMetadata> {
-    let mut metadata =
-        ProjectMetadata { settings, scenario_sources: Vec::new(), assets: Default::default() };
+    let mut metadata = ProjectMetadata {
+        settings,
+        scenario_sources: Vec::new(),
+        library_sources: Vec::new(),
+        javascript_sources: Vec::new(),
+        assets: Default::default(),
+    };
 
     for scenario_root in metadata.settings.scenario_roots.clone() {
         for rel in walk_sorted(root, &scenario_root)? {
@@ -29,6 +34,28 @@ pub fn load_project_with(root: &Path, settings: ProjectSettings) -> io::Result<P
             }
             let text = std::fs::read_to_string(root.join(rel.as_str()))?;
             metadata.scenario_sources.push((rel, text));
+        }
+    }
+
+    for source_root in metadata.settings.source_roots.clone() {
+        for rel in walk_sorted(root, &source_root)? {
+            match rel.extension() {
+                Some("ks")
+                    if !metadata
+                        .settings
+                        .scenario_roots
+                        .iter()
+                        .any(|scenario| rel.strip_prefix(scenario).is_some()) =>
+                {
+                    let text = std::fs::read_to_string(root.join(rel.as_str()))?;
+                    metadata.library_sources.push((rel, text));
+                }
+                Some("js") => {
+                    let text = std::fs::read_to_string(root.join(rel.as_str()))?;
+                    metadata.javascript_sources.push((rel, text));
+                }
+                _ => {}
+            }
         }
     }
 
@@ -121,25 +148,54 @@ mod tests {
         tmp.write("data/scenario/first.ks", "*start\n");
         tmp.write("data/scenario/sub/ev.ks", "*ev\n");
         tmp.write("data/scenario/readme.txt", "not a scenario");
+        tmp.write("data/others/plugin/demo/init.ks", "[macro name=demo][endmacro]\n");
+        tmp.write("data/others/plugin/demo/main.js", "sf.demo = true;\n");
         tmp.write("data/bgimage/room.jpg", "");
         tmp.write("data/bgm/theme.ogg", "");
 
         let metadata = load_project(&tmp.0).unwrap();
-        let scenario_paths: Vec<&str> =
-            metadata.scenario_sources.iter().map(|(p, _)| p.as_str()).collect();
+        let scenario_paths: Vec<&str> = metadata
+            .scenario_sources
+            .iter()
+            .map(|(p, _)| p.as_str())
+            .collect();
         assert_eq!(
             scenario_paths,
             ["data/scenario/first.ks", "data/scenario/sub/ev.ks"],
             "recursive, sorted, .ks only"
         );
         assert_eq!(metadata.scenario_sources[0].1, "*start\n");
+        assert_eq!(
+            metadata
+                .library_sources
+                .iter()
+                .map(|(p, _)| p.as_str())
+                .collect::<Vec<_>>(),
+            ["data/others/plugin/demo/init.ks"]
+        );
+        assert_eq!(
+            metadata
+                .javascript_sources
+                .iter()
+                .map(|(p, _)| p.as_str())
+                .collect::<Vec<_>>(),
+            ["data/others/plugin/demo/main.js"]
+        );
 
-        let bg: Vec<&str> =
-            metadata.assets[&AssetKind::BgImage].iter().map(|p| p.as_str()).collect();
+        let bg: Vec<&str> = metadata.assets[&AssetKind::BgImage]
+            .iter()
+            .map(|p| p.as_str())
+            .collect();
         assert_eq!(bg, ["data/bgimage/room.jpg"]);
-        let bgm: Vec<&str> = metadata.assets[&AssetKind::Bgm].iter().map(|p| p.as_str()).collect();
+        let bgm: Vec<&str> = metadata.assets[&AssetKind::Bgm]
+            .iter()
+            .map(|p| p.as_str())
+            .collect();
         assert_eq!(bgm, ["data/bgm/theme.ogg"]);
-        assert!(!metadata.assets.contains_key(&AssetKind::Video), "missing dirs load as empty");
+        assert!(
+            !metadata.assets.contains_key(&AssetKind::Video),
+            "missing dirs load as empty"
+        );
     }
 
     #[test]

@@ -1,10 +1,9 @@
 {
   "name": "tyranoscript-language-server",
-  "description": "A language server for TyranoScript",
   "displayName": "Tyranoscript-LSP",
   "description": "Language support for TyranoScript (.ks) visual-novel scenario files, powered by the tyrano-lsp language server.",
   "publisher": "darallium",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "license": "MIT",
   "private": false,
   "repository": {
@@ -19,7 +18,8 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onLanguage:tyranoscript"
+    "onLanguage:tyranoscript",
+    "workspaceContains:data/scenario/**/*.ks"
   ],
   "contributes": {
     "languages": [
@@ -69,6 +69,11 @@
           ],
           "default": "off",
           "description": "Traces the communication between VS Code and the TyranoScript language server."
+        },
+        "tyranoscript.javascript.navigation.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enables TyranoScript go-to-definition and find-references providers in JavaScript files under data/. Disable this if they conflict with another JavaScript extension."
         }
       }
     }
@@ -80,7 +85,7 @@
     "test:e2e": "node test/e2e-protocol.mjs",
     "test:integration": "node test/runTest.mjs",
     "test:grammar": "node test/runGrammarTest.mjs",
-    "package": "vsce package",
+    "package": "vsce package --no-dependencies",
     "vscode:prepublish": "npm run compile"
   },
   "dependencies": {

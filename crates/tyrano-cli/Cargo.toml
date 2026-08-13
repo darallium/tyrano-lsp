@@ -1,6 +1,6 @@
 [package]
 name = "tyrano-cli"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 
 [[bin]]
@@ -10,4 +10,7 @@ path = "src/main.rs"
 [dependencies]
 tyrano-syntax = { path = "../tyrano-syntax" }
 tyrano-analysis = { path = "../tyrano-analysis" }
+tyrano-js-analysis = { path = "../tyrano-js-analysis" }
+tyrano-project = { path = "../tyrano-project" }
+tyrano-semantic = { path = "../tyrano-semantic" }
 clap = { version = "4", features = ["derive"] }

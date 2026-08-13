@@ -48,8 +48,10 @@ impl ProjectPath {
         if unified.starts_with('/') {
             return Err(ProjectPathError::Absolute(raw.to_string()));
         }
-        let segments: Vec<&str> =
-            unified.split('/').filter(|s| !s.is_empty() && *s != ".").collect();
+        let segments: Vec<&str> = unified
+            .split('/')
+            .filter(|s| !s.is_empty() && *s != ".")
+            .collect();
         if segments.first().is_some_and(|s| s.contains(':')) {
             return Err(ProjectPathError::Absolute(raw.to_string()));
         }
@@ -70,6 +72,35 @@ impl ProjectPath {
     /// `self` extended by `tail` (which is normalized by the same rules).
     pub fn join(&self, tail: &str) -> Result<ProjectPath, ProjectPathError> {
         ProjectPath::new(format!("{}/{}", self.0, tail))
+    }
+
+    /// Resolves a runtime-relative path against this directory, collapsing
+    /// `.` and `..` while rejecting attempts to escape the project root.
+    pub fn resolve_relative(&self, tail: &str) -> Result<ProjectPath, ProjectPathError> {
+        let unified = tail.replace('\\', "/");
+        if unified.starts_with('/') {
+            return Err(ProjectPathError::Absolute(tail.to_owned()));
+        }
+        if unified
+            .split('/')
+            .find(|segment| !segment.is_empty() && *segment != ".")
+            .is_some_and(|segment| segment.contains(':'))
+        {
+            return Err(ProjectPathError::Absolute(tail.to_owned()));
+        }
+        let mut segments: Vec<&str> = self.0.split('/').collect();
+        for segment in unified.split('/').filter(|segment| !segment.is_empty()) {
+            match segment {
+                "." => {}
+                ".." => {
+                    if segments.pop().is_none() {
+                        return Err(ProjectPathError::ParentSegment(tail.to_owned()));
+                    }
+                }
+                segment => segments.push(segment),
+            }
+        }
+        ProjectPath::new(segments.join("/"))
     }
 
     /// The extension of the final segment (without the dot), if any.
@@ -106,11 +137,23 @@ mod tests {
 
     #[test]
     fn rejects_absolute_parent_and_empty() {
-        assert!(matches!(ProjectPath::new("/etc/passwd"), Err(ProjectPathError::Absolute(_))));
-        assert!(matches!(ProjectPath::new("C:\\game\\a.ks"), Err(ProjectPathError::Absolute(_))));
-        assert!(matches!(ProjectPath::new("a/../b"), Err(ProjectPathError::ParentSegment(_))));
+        assert!(matches!(
+            ProjectPath::new("/etc/passwd"),
+            Err(ProjectPathError::Absolute(_))
+        ));
+        assert!(matches!(
+            ProjectPath::new("C:\\game\\a.ks"),
+            Err(ProjectPathError::Absolute(_))
+        ));
+        assert!(matches!(
+            ProjectPath::new("a/../b"),
+            Err(ProjectPathError::ParentSegment(_))
+        ));
         assert!(matches!(ProjectPath::new(""), Err(ProjectPathError::Empty)));
-        assert!(matches!(ProjectPath::new("./."), Err(ProjectPathError::Empty)));
+        assert!(matches!(
+            ProjectPath::new("./."),
+            Err(ProjectPathError::Empty)
+        ));
     }
 
     #[test]
@@ -122,6 +165,18 @@ mod tests {
         assert_eq!(root.extension(), None);
         assert_eq!(ProjectPath::new("a/.hidden").unwrap().extension(), None);
         assert!(root.join("../escape").is_err());
+        assert_eq!(
+            root.resolve_relative("../image/a.png").unwrap().as_str(),
+            "data/image/a.png"
+        );
+        assert!(matches!(
+            root.resolve_relative("C:/escape.ks"),
+            Err(ProjectPathError::Absolute(_))
+        ));
+        assert!(matches!(
+            root.resolve_relative("../../../escape.ks"),
+            Err(ProjectPathError::ParentSegment(_))
+        ));
     }
 
     #[test]
@@ -131,7 +186,11 @@ mod tests {
         assert_eq!(file.strip_prefix(&root), Some("first.ks"));
         let outside = ProjectPath::new("data/scenario2/first.ks").unwrap();
         assert_eq!(outside.strip_prefix(&root), None);
-        assert_eq!(root.strip_prefix(&root), None, "a directory is not inside itself");
+        assert_eq!(
+            root.strip_prefix(&root),
+            None,
+            "a directory is not inside itself"
+        );
     }
 
     #[test]

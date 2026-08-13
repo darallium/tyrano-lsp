@@ -103,6 +103,7 @@ pub(super) const TAGS: &[TagSpec] = &[
             optd("loop", Boolean, "false"),
             optd("buf", Number, "0"),
             optd("fadeout", Boolean, "true"),
+            opt("time", Number),
         ],
         Deny,
         "stop a sound effect with a fade-out",
