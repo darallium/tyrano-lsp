@@ -1,7 +1,7 @@
 //! Virtual-chat tags: the `vchat_*` family.
 
-use super::{ExtraParams::Allow, TagSpec, opt, req, tag};
 use super::ValueKind::{Color, Text};
+use super::{ExtraParams::Allow, TagSpec, opt, req, tag};
 
 pub(super) const TAGS: &[TagSpec] = &[
     tag(
@@ -16,5 +16,10 @@ pub(super) const TAGS: &[TagSpec] = &[
         Allow,
         "configure virtual-chat display options",
     ),
-    tag("vchat_in", &[], Allow, "place a virtual-chat balloon (internal use)"),
+    tag(
+        "vchat_in",
+        &[],
+        Allow,
+        "place a virtual-chat balloon (internal use)",
+    ),
 ];

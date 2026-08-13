@@ -345,18 +345,12 @@ fn transfer_unit(
             .get(&path)
             .map_or(AbstractDefinition::Undefined, |&id| state[id]);
         let optional = located.effect.deferred || located.effect.conditional;
-        let checked_definition = if optional
-            && definition == AbstractDefinition::Undefined
-        {
+        let checked_definition = if optional && definition == AbstractDefinition::Undefined {
             AbstractDefinition::MaybeDefined
         } else {
             definition
         };
-        let issue_kind = match (
-            located.effect.kind,
-            located.effect.role,
-            checked_definition,
-        ) {
+        let issue_kind = match (located.effect.kind, located.effect.role, checked_definition) {
             (EffectKind::Read, EffectRole::Dereference, AbstractDefinition::Undefined) => {
                 Some(LifecycleIssueKind::UndefinedDereference)
             }
@@ -371,7 +365,9 @@ fn transfer_unit(
             }
             _ => None,
         };
-        if recorder.record && let Some(kind) = issue_kind {
+        if recorder.record
+            && let Some(kind) = issue_kind
+        {
             let key = (
                 unit_id,
                 kind,
@@ -424,7 +420,9 @@ fn transfer_unit(
                 }
                 _ => None,
             };
-            if recorder.record && let Some(kind) = derived {
+            if recorder.record
+                && let Some(kind) = derived
+            {
                 let kind = if optional || imprecise {
                     DerivedDefinitionKind::MaybeDefine
                 } else {
@@ -453,11 +451,7 @@ fn transfer_unit(
                 } else {
                     parent_state
                 };
-                state[id] = if optional {
-                    state[id].join(next)
-                } else {
-                    next
-                };
+                state[id] = if optional { state[id].join(next) } else { next };
             }
         }
     }
@@ -587,10 +581,12 @@ mod tests {
             issue.kind == LifecycleIssueKind::UndefinedDereference
                 && issue.path.render() == "f.player"
         }));
-        assert!(!analysis
-            .definitions
-            .iter()
-            .any(|definition| definition.path.render() == "f.player.hp"));
+        assert!(
+            !analysis
+                .definitions
+                .iter()
+                .any(|definition| definition.path.render() == "f.player.hp")
+        );
     }
 
     #[test]

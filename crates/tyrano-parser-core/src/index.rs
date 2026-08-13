@@ -159,7 +159,10 @@ impl SemanticIndex {
     /// The scope an item belongs to (defaults to the file root for items
     /// the builder did not attribute, e.g. ids from nested block tags).
     pub fn scope_of(&self, item: ErasedAstId) -> ScopeId {
-        self.scope_by_item.get(&item).copied().unwrap_or(ScopeId::ROOT)
+        self.scope_by_item
+            .get(&item)
+            .copied()
+            .unwrap_or(ScopeId::ROOT)
     }
 
     /// Deterministic, line-oriented dump for golden tests.
@@ -178,7 +181,9 @@ impl SemanticIndex {
                 }
                 ScopeKind::MacroBody { def } => {
                     let name = &self.symbol(self.definition(*def).symbol).name;
-                    let parent = scope.parent.map_or("-".to_string(), |p| format!("scope{}", p.index()));
+                    let parent = scope
+                        .parent
+                        .map_or("-".to_string(), |p| format!("scope{}", p.index()));
                     let _ = writeln!(
                         out,
                         "scope{i} macro-body(def{} \"{name}\") {} parent={parent}",
@@ -196,8 +201,17 @@ impl SemanticIndex {
                 SymbolKind::Macro => "macro",
                 SymbolKind::Character => "character",
             };
-            let defs: Vec<String> = sym.defs.iter().map(|d| format!("def{}", d.index())).collect();
-            let _ = writeln!(out, "sym{i} {kind} \"{}\" defs=[{}]", sym.name, defs.join(", "));
+            let defs: Vec<String> = sym
+                .defs
+                .iter()
+                .map(|d| format!("def{}", d.index()))
+                .collect();
+            let _ = writeln!(
+                out,
+                "sym{i} {kind} \"{}\" defs=[{}]",
+                sym.name,
+                defs.join(", ")
+            );
         }
 
         out.push_str("== definitions ==\n");
@@ -271,7 +285,13 @@ impl SemanticIndex {
 
         out.push_str("== errors ==\n");
         for err in &self.errors {
-            let _ = writeln!(out, "{} @{} :: {}", err.code(), range(err.range), err.message());
+            let _ = writeln!(
+                out,
+                "{} @{} :: {}",
+                err.code(),
+                range(err.range),
+                err.message()
+            );
         }
 
         out

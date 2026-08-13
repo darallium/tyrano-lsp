@@ -8,8 +8,8 @@ use tyrano_syntax::ast::{AnyTag, AstNode as _, InterpretOptions, Param};
 use tyrano_syntax::diagnostics::Severity;
 use tyrano_syntax::text::TextRange;
 
-use crate::check::kind::{ValueClass, check_static, classify};
 use crate::check::all_tags;
+use crate::check::kind::{ValueClass, check_static, classify};
 use crate::codes;
 use crate::model::{SemanticModel, TagResolution};
 
@@ -88,7 +88,9 @@ fn check_builtin(
     }
 
     for param in &params {
-        let Some(ps) = spec.param(&param.name()) else { continue };
+        let Some(ps) = spec.param(&param.name()) else {
+            continue;
+        };
         if let ValueClass::Static(value) = classify(param, opts)
             && let Err(mismatch) = check_static(ps.kind, &value)
         {
@@ -107,10 +109,13 @@ fn check_builtin(
 
 /// The tag-name range (fallback: the whole tag).
 fn name_range(tag: &AnyTag) -> TextRange {
-    tag.tag_name().map_or(tag.syntax().text_range(), |n| n.syntax().text_range())
+    tag.tag_name()
+        .map_or(tag.syntax().text_range(), |n| n.syntax().text_range())
 }
 
 /// The value range (fallback: the whole parameter).
 fn value_range(param: &Param) -> TextRange {
-    param.value_node().map_or(param.syntax().text_range(), |v| v.syntax().text_range())
+    param
+        .value_node()
+        .map_or(param.syntax().text_range(), |v| v.syntax().text_range())
 }

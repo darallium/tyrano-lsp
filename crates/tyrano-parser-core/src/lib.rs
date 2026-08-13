@@ -49,7 +49,11 @@ pub fn ast_id_map(db: &dyn tyrano_db::Db, file: tyrano_db::SourceFile) -> Arc<As
 pub fn semantic_index(db: &dyn tyrano_db::Db, file: tyrano_db::SourceFile) -> Arc<SemanticIndex> {
     let module = tyrano_db::parsed_module(db, file);
     let ast_ids = ast_id_map(db, file);
-    Arc::new(build_index(&module.scenario(), &ast_ids, &file.interpret_options(db)))
+    Arc::new(build_index(
+        &module.scenario(),
+        &ast_ids,
+        &file.interpret_options(db),
+    ))
 }
 
 /// The file-local semantic errors of `file`, lowered into the shared
@@ -59,7 +63,11 @@ pub fn semantic_diagnostics(
     db: &dyn tyrano_db::Db,
     file: tyrano_db::SourceFile,
 ) -> Arc<[tyrano_db::FileDiagnostic]> {
-    semantic_index(db, file).errors().iter().map(SemanticError::to_diagnostic).collect()
+    semantic_index(db, file)
+        .errors()
+        .iter()
+        .map(SemanticError::to_diagnostic)
+        .collect()
 }
 
 /// Every diagnostic of `file` — lex/parse plus semantic — in one list,
@@ -70,8 +78,10 @@ pub fn file_diagnostics(
     db: &dyn tyrano_db::Db,
     file: tyrano_db::SourceFile,
 ) -> Arc<[tyrano_db::FileDiagnostic]> {
-    let mut all: Vec<tyrano_db::FileDiagnostic> =
-        tyrano_db::parse_diagnostics(db, file).iter().cloned().collect();
+    let mut all: Vec<tyrano_db::FileDiagnostic> = tyrano_db::parse_diagnostics(db, file)
+        .iter()
+        .cloned()
+        .collect();
     all.extend(semantic_diagnostics(db, file).iter().cloned());
     all.sort_by_key(|d| (d.range.start(), d.range.end(), d.code));
     all.into()
@@ -115,7 +125,9 @@ mod tests {
         let module = tyrano_db::parsed_module(&db, file);
         let root = module.syntax();
         for def in idx.definitions() {
-            let node = ids.resolve(def.node, &root).expect("definition id resolves");
+            let node = ids
+                .resolve(def.node, &root)
+                .expect("definition id resolves");
             assert!(node.text_range().contains_range(def.name_range));
         }
     }
@@ -138,7 +150,10 @@ mod tests {
         // ParsedModule, so backdating keeps the semantic index memo.
         file.set_text(&mut db).to(SRC.to_string());
         let after = semantic_index(&db, file);
-        assert!(Arc::ptr_eq(&before, &after), "identical reparse must backdate");
+        assert!(
+            Arc::ptr_eq(&before, &after),
+            "identical reparse must backdate"
+        );
     }
 
     #[test]
@@ -159,7 +174,10 @@ mod tests {
         let diags = semantic_diagnostics(&db, file);
         assert_eq!(diags.len(), 1);
         assert_eq!(diags[0].code, "sem-unknown-label-target");
-        assert_eq!(diags[0].severity, tyrano_syntax::diagnostics::Severity::Error);
+        assert_eq!(
+            diags[0].severity,
+            tyrano_syntax::diagnostics::Severity::Error
+        );
         assert_eq!(diags[0].message, "unknown label `gone` in this file");
         // Renders with a 1-based location via the shared line index.
         let index = tyrano_db::line_index(&db, file);
@@ -175,14 +193,18 @@ mod tests {
         // "[unclosed\n" gives a parse diagnostic; the jump gives a semantic
         // one further down. Merged output must be sorted by range.
         let db = RootDatabase::default();
-        let file =
-            SourceFile::with_defaults(&db, "[jump target=*gone]\n[unclosed\n".to_string());
+        let file = SourceFile::with_defaults(&db, "[jump target=*gone]\n[unclosed\n".to_string());
         let diags = file_diagnostics(&db, file);
         assert!(diags.len() >= 2, "expected parse + semantic, got {diags:?}");
-        assert!(diags.iter().any(|d| d.code.starts_with("E_")), "parse diag present");
+        assert!(
+            diags.iter().any(|d| d.code.starts_with("E_")),
+            "parse diag present"
+        );
         assert!(diags.iter().any(|d| d.code == "sem-unknown-label-target"));
         assert!(
-            diags.windows(2).all(|w| w[0].range.start() <= w[1].range.start()),
+            diags
+                .windows(2)
+                .all(|w| w[0].range.start() <= w[1].range.start()),
             "sorted by start: {diags:?}"
         );
     }

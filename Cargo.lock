@@ -1217,7 +1217,7 @@ dependencies = [
 
 [[package]]
 name = "tyrano-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "tyrano-analysis",
@@ -1256,7 +1256,7 @@ dependencies = [
 
 [[package]]
 name = "tyrano-lsp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "crossbeam-channel",
@@ -1320,7 +1320,7 @@ dependencies = [
 
 [[package]]
 name = "tyrano-project"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "salsa",
  "tyrano-db",
@@ -1330,7 +1330,7 @@ dependencies = [
 
 [[package]]
 name = "tyrano-semantic"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "salsa",
  "tyrano-db",

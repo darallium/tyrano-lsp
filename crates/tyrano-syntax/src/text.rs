@@ -202,10 +202,7 @@ impl TextRange {
     /// Panics if `start > end`.
     #[inline]
     pub fn new(start: TextSize, end: TextSize) -> TextRange {
-        assert!(
-            start <= end,
-            "invalid TextRange: start {start} > end {end}"
-        );
+        assert!(start <= end, "invalid TextRange: start {start} > end {end}");
         TextRange { start, end }
     }
 
@@ -479,10 +476,7 @@ pub fn normalize_edits(edits: Vec<TextEdit>) -> Vec<TextEdit> {
     for edit in sorted {
         match merged.last_mut() {
             Some(last) if edit.range.start() < last.range.end() => {
-                panic!(
-                    "overlapping edits: {:?} and {:?}",
-                    last.range, edit.range
-                );
+                panic!("overlapping edits: {:?} and {:?}", last.range, edit.range);
             }
             Some(last) if edit.range.start() == last.range.end() => {
                 // Touching edits: extend the previous span and concatenate.
@@ -589,11 +583,7 @@ impl LineIndex {
     pub fn line_range(&self, line: u32) -> Option<TextRange> {
         let line = line as usize;
         let start = *self.line_starts.get(line)?;
-        let end = self
-            .line_starts
-            .get(line + 1)
-            .copied()
-            .unwrap_or(self.len);
+        let end = self.line_starts.get(line + 1).copied().unwrap_or(self.len);
         Some(TextRange::new(start, end))
     }
 }
@@ -650,8 +640,7 @@ impl SourceText {
     /// The line index, building it on first use and caching it thereafter.
     #[inline]
     pub fn line_index(&self) -> &LineIndex {
-        self.line_index
-            .get_or_init(|| LineIndex::new(&self.text))
+        self.line_index.get_or_init(|| LineIndex::new(&self.text))
     }
 
     /// Convenience: the line/column of `offset` via the cached line index.

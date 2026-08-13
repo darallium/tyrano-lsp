@@ -276,7 +276,10 @@ mod tests {
         }
 
         // Sanity: the fixture really does contain both kinds.
-        assert!(root.descendants().any(|n| n.kind() == SyntaxKind::INLINE_TAG));
+        assert!(
+            root.descendants()
+                .any(|n| n.kind() == SyntaxKind::INLINE_TAG)
+        );
         assert!(root.descendants().any(|n| n.kind() == SyntaxKind::PARAM));
     }
 
@@ -317,7 +320,11 @@ mod tests {
             let pb = map_b.ptr(id);
             assert_eq!(pa.kind(), pb.kind(), "kind mismatch at id {i}");
             // Ranges differ because everything shifted by the 2 inserted bytes.
-            assert_ne!(pa.text_range(), pb.text_range(), "range should shift at id {i}");
+            assert_ne!(
+                pa.text_range(),
+                pb.text_range(),
+                "range should shift at id {i}"
+            );
         }
     }
 

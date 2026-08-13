@@ -1,11 +1,6 @@
 use std::fs;
 use tyrano_lexer::Scanner;
-use tyrano_parser::{
-    parser::{ Parser,},
-    cst::CstNode,
-    tables::token_type_to_id,
-};
-
+use tyrano_parser::{cst::CstNode, parser::Parser, tables::token_type_to_id};
 
 pub fn run_parse(file_path: &str) -> Result<(), String> {
     let content = fs::read_to_string(file_path).expect("Failed to read file");
@@ -60,26 +55,22 @@ pub fn run_parse(file_path: &str) -> Result<(), String> {
                 }
                 Err(e) => {
                     if e.expected.is_empty() {
-                        return Err(format!(
+                        Err(format!(
                             "\n=== Parse error ===\n{}\nAt position: {}..{}",
                             e.message, e.span.start, e.span.end
-                        ));
+                        ))
                     } else {
-                        return Err(format!(
+                        Err(format!(
                             "\n=== Parse error ===\n{}\nAt position: {}..{}\nExpected: {:?}",
                             e.message, e.span.start, e.span.end, e.expected
-                        ));
+                        ))
                     }
                 }
             }
         }
-        Err(e) => {
-            Err(format!("Lexer error: {}", e))
-        }
+        Err(e) => Err(format!("Lexer error: {}", e)),
     }
 }
-
-
 
 fn print_cst(node: &CstNode, indent: usize) {
     let pad = "  ".repeat(indent);
@@ -116,5 +107,3 @@ fn print_cst(node: &CstNode, indent: usize) {
         }
     }
 }
-
-

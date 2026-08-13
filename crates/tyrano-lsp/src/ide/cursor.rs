@@ -22,9 +22,18 @@ pub enum CursorTarget {
     /// A tag name with no recorded use: a builtin or a cross-file macro.
     Tag { name: String, range: TextRange },
     /// A parameter name inside tag `tag`.
-    ParamName { tag: String, name: String, range: TextRange },
+    ParamName {
+        tag: String,
+        name: String,
+        range: TextRange,
+    },
     /// A parameter value inside tag `tag`. `value` is the cooked value.
-    ParamValue { tag: String, param: String, value: String, range: TextRange },
+    ParamValue {
+        tag: String,
+        param: String,
+        value: String,
+        range: TextRange,
+    },
     /// Nothing semantic (plain text, comments, whitespace).
     None,
 }
@@ -44,7 +53,10 @@ pub fn classify(db: &dyn ProjectDb, file: File, offset: TextSize) -> CursorTarge
 
     for (i, use_) in index.uses().iter().enumerate() {
         if use_.range.contains_inclusive(offset) && !use_.range.is_empty() {
-            return CursorTarget::Use { index: i, range: use_.range };
+            return CursorTarget::Use {
+                index: i,
+                range: use_.range,
+            };
         }
     }
 
@@ -62,17 +74,28 @@ fn classify_cst(db: &dyn ProjectDb, file: File, offset: TextSize) -> CursorTarge
     for anc in node.ancestors() {
         match anc.kind() {
             SyntaxKind::TAG_NAME => {
-                let Some(name) = TagName::cast(anc.clone()) else { continue };
+                let Some(name) = TagName::cast(anc.clone()) else {
+                    continue;
+                };
                 let Some(token) = name.token() else { continue };
-                let Some(tag) = anc.parent().and_then(AnyTag::cast) else { continue };
-                return CursorTarget::Tag { name: tag.name(), range: token.text_range() };
+                let Some(tag) = anc.parent().and_then(AnyTag::cast) else {
+                    continue;
+                };
+                return CursorTarget::Tag {
+                    name: tag.name(),
+                    range: token.text_range(),
+                };
             }
             SyntaxKind::PARAM => {
-                let Some(param) = Param::cast(anc.clone()) else { continue };
+                let Some(param) = Param::cast(anc.clone()) else {
+                    continue;
+                };
                 return classify_param(db, file, &param, offset);
             }
             SyntaxKind::PARAM_VALUE => {
-                let Some(param) = anc.parent().and_then(Param::cast) else { continue };
+                let Some(param) = anc.parent().and_then(Param::cast) else {
+                    continue;
+                };
                 return classify_param(db, file, &param, offset);
             }
             _ => {}
@@ -81,12 +104,7 @@ fn classify_cst(db: &dyn ProjectDb, file: File, offset: TextSize) -> CursorTarge
     CursorTarget::None
 }
 
-fn classify_param(
-    db: &dyn ProjectDb,
-    file: File,
-    param: &Param,
-    offset: TextSize,
-) -> CursorTarget {
+fn classify_param(db: &dyn ProjectDb, file: File, param: &Param, offset: TextSize) -> CursorTarget {
     let Some(tag) = param.syntax().parent().and_then(AnyTag::cast) else {
         return CursorTarget::None;
     };
@@ -119,7 +137,10 @@ fn classify_param(
 
 /// The value's token range (falls back to the node range).
 fn value_range(value: &ParamValue) -> TextRange {
-    value.token().map(|t| t.text_range()).unwrap_or_else(|| value.syntax().text_range())
+    value
+        .token()
+        .map(|t| t.text_range())
+        .unwrap_or_else(|| value.syntax().text_range())
 }
 
 #[cfg(test)]
@@ -190,7 +211,9 @@ mod tests {
             other => panic!("expected ParamName, got {other:?}"),
         }
         match classify(&db, f, offset(&db, f, "scene2.ks target", 4)) {
-            CursorTarget::ParamValue { tag, param, value, .. } => {
+            CursorTarget::ParamValue {
+                tag, param, value, ..
+            } => {
                 assert_eq!(tag, "jump");
                 assert_eq!(param, "storage");
                 assert_eq!(value, "scene2.ks");
@@ -203,6 +226,9 @@ mod tests {
     fn plain_text_is_none() {
         let db = project(&[("data/scenario/main.ks", "*a\nこんにちは\n")]);
         let f = file(&db, "data/scenario/main.ks");
-        assert_eq!(classify(&db, f, offset(&db, f, "こん", 3)), CursorTarget::None);
+        assert_eq!(
+            classify(&db, f, offset(&db, f, "こん", 3)),
+            CursorTarget::None
+        );
     }
 }

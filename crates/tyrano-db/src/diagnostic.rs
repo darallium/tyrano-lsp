@@ -30,10 +30,7 @@ pub struct FileDiagnostic {
 impl FileDiagnostic {
     /// Lowers a structured syntax [`Diagnostic`](tyrano_syntax::diagnostics::Diagnostic)
     /// into a flat [`FileDiagnostic`], rendering its message in `lang`.
-    pub fn from_syntax(
-        d: &tyrano_syntax::diagnostics::Diagnostic,
-        lang: Lang,
-    ) -> FileDiagnostic {
+    pub fn from_syntax(d: &tyrano_syntax::diagnostics::Diagnostic, lang: Lang) -> FileDiagnostic {
         FileDiagnostic {
             code: d.code.as_str(),
             severity: d.severity,
@@ -134,7 +131,9 @@ mod tests {
         assert!(!diags.is_empty());
         // Sorted by range start (tyrano-syntax already sorts; assert anyway).
         assert!(
-            diags.windows(2).all(|w| w[0].range.start() <= w[1].range.start()),
+            diags
+                .windows(2)
+                .all(|w| w[0].range.start() <= w[1].range.start()),
             "diagnostics must be sorted by range start"
         );
     }

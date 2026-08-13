@@ -13,29 +13,71 @@ struct Rng(u64);
 
 impl Rng {
     fn next(&mut self, m: usize) -> usize {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         ((self.0 >> 33) as usize) % m.max(1)
     }
 }
 
 const FRAGMENTS: &[&str] = &[
-    "[", "]", "[l]", "@bg t=", "\"", "'", "`", "\\", "*a|b", "#n:f", ";c", "/*", "*/",
-    "[iscript]", "endscript", "[endscript]", "[html]", "[endhtml]", "&f.x+1", "%p", "\n",
-    "\r\n", " ", "  ", "_", "あ", "漢字テキスト", "\u{feff}", "=", "|", ":", "*", "@", "#",
-    "[eval exp=f.a[0]]", "t=undefined", "[macro_use * flag2]",
+    "[",
+    "]",
+    "[l]",
+    "@bg t=",
+    "\"",
+    "'",
+    "`",
+    "\\",
+    "*a|b",
+    "#n:f",
+    ";c",
+    "/*",
+    "*/",
+    "[iscript]",
+    "endscript",
+    "[endscript]",
+    "[html]",
+    "[endhtml]",
+    "&f.x+1",
+    "%p",
+    "\n",
+    "\r\n",
+    " ",
+    "  ",
+    "_",
+    "あ",
+    "漢字テキスト",
+    "\u{feff}",
+    "=",
+    "|",
+    ":",
+    "*",
+    "@",
+    "#",
+    "[eval exp=f.a[0]]",
+    "t=undefined",
+    "[macro_use * flag2]",
 ];
 
 fn assert_invariants(src: &str) -> Parse {
     let parsed = parse(src);
     assert_eq!(parsed.to_source(), src, "round-trip failed for {src:?}");
-    assert_eq!(parsed.green().full_len().to_usize(), src.len(), "coverage failed for {src:?}");
+    assert_eq!(
+        parsed.green().full_len().to_usize(),
+        src.len(),
+        "coverage failed for {src:?}"
+    );
     parsed
 }
 
 #[test]
 fn structured_soup() {
     let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
-    let strict = ParseOptions { loose_endscript_termination: false };
+    let strict = ParseOptions {
+        loose_endscript_termination: false,
+    };
     for i in 0..300 {
         let mut src = String::new();
         for _ in 0..rng.next(60) {
@@ -44,7 +86,11 @@ fn structured_soup() {
         assert_invariants(&src);
         if i % 10 == 0 {
             let parsed = parse_with_options(&src, &strict);
-            assert_eq!(parsed.to_source(), src, "strict round-trip failed for {src:?}");
+            assert_eq!(
+                parsed.to_source(),
+                src,
+                "strict round-trip failed for {src:?}"
+            );
         }
     }
 }

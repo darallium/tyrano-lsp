@@ -369,8 +369,10 @@ mod tests {
     fn classification_is_disjoint() {
         for raw in 0..=SyntaxKind::__NODE_END.into_raw() {
             let kind = SyntaxKind::from_raw(raw);
-            let classes =
-                [kind.is_trivia(), kind.is_token(), kind.is_node()].iter().filter(|&&b| b).count();
+            let classes = [kind.is_trivia(), kind.is_token(), kind.is_node()]
+                .iter()
+                .filter(|&&b| b)
+                .count();
             assert!(classes <= 1, "{kind} belongs to multiple classes");
         }
         assert!(SyntaxKind::WHITESPACE.is_trivia());

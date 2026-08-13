@@ -43,24 +43,65 @@ use super::schema::{ExtraParams, ParamSpec, TagSpec};
 /// engine's `:param` doc comments, which enumerate the full list).
 /// `three.rs` has its own, genuinely different tween-easing list.
 const EASE_EFFECTS: &[&str] = &[
-    "jswing", "def", "easeInQuad", "easeOutQuad", "easeInOutQuad", "easeInCubic", "easeOutCubic",
-    "easeInOutCubic", "easeInQuart", "easeOutQuart", "easeInOutQuart", "easeInQuint", "easeOutQuint",
-    "easeInOutQuint", "easeInSine", "easeOutSine", "easeInOutSine", "easeInExpo", "easeOutExpo",
-    "easeInOutExpo", "easeInCirc", "easeOutCirc", "easeInOutCirc", "easeInElastic", "easeOutElastic",
-    "easeInOutElastic", "easeInBack", "easeOutBack", "easeInOutBack", "easeInBounce", "easeOutBounce",
+    "jswing",
+    "def",
+    "easeInQuad",
+    "easeOutQuad",
+    "easeInOutQuad",
+    "easeInCubic",
+    "easeOutCubic",
+    "easeInOutCubic",
+    "easeInQuart",
+    "easeOutQuart",
+    "easeInOutQuart",
+    "easeInQuint",
+    "easeOutQuint",
+    "easeInOutQuint",
+    "easeInSine",
+    "easeOutSine",
+    "easeInOutSine",
+    "easeInExpo",
+    "easeOutExpo",
+    "easeInOutExpo",
+    "easeInCirc",
+    "easeOutCirc",
+    "easeInOutCirc",
+    "easeInElastic",
+    "easeOutElastic",
+    "easeInOutElastic",
+    "easeInBack",
+    "easeOutBack",
+    "easeInOutBack",
+    "easeInBounce",
+    "easeOutBounce",
     "easeInOutBounce",
 ];
 
 const fn req(name: &'static str, kind: ValueKind) -> ParamSpec {
-    ParamSpec { name, required: true, kind, default: None }
+    ParamSpec {
+        name,
+        required: true,
+        kind,
+        default: None,
+    }
 }
 
 const fn opt(name: &'static str, kind: ValueKind) -> ParamSpec {
-    ParamSpec { name, required: false, kind, default: None }
+    ParamSpec {
+        name,
+        required: false,
+        kind,
+        default: None,
+    }
 }
 
 const fn optd(name: &'static str, kind: ValueKind, default: &'static str) -> ParamSpec {
-    ParamSpec { name, required: false, kind, default: Some(default) }
+    ParamSpec {
+        name,
+        required: false,
+        kind,
+        default: Some(default),
+    }
 }
 
 const fn tag(
@@ -69,7 +110,12 @@ const fn tag(
     extra: ExtraParams,
     doc: &'static str,
 ) -> TagSpec {
-    TagSpec { name, params, extra, doc }
+    TagSpec {
+        name,
+        params,
+        extra,
+        doc,
+    }
 }
 
 /// Every builtin tag, grouped by category module. The registry flattens

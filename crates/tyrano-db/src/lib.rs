@@ -42,7 +42,12 @@ pub struct SourceFile {
 impl SourceFile {
     /// A file with default parse and interpretation options.
     pub fn with_defaults(db: &dyn Db, text: String) -> SourceFile {
-        SourceFile::new(db, text, ParseOptions::default(), InterpretOptions::default())
+        SourceFile::new(
+            db,
+            text,
+            ParseOptions::default(),
+            InterpretOptions::default(),
+        )
     }
 }
 
@@ -96,7 +101,10 @@ mod tests {
         let file = SourceFile::with_defaults(&db, SRC.to_string());
         let a = parsed_module(&db, file);
         let b = parsed_module(&db, file);
-        assert!(GreenNode::ptr_eq(a.green(), b.green()), "memo hit must return the same tree");
+        assert!(
+            GreenNode::ptr_eq(a.green(), b.green()),
+            "memo hit must return the same tree"
+        );
     }
 
     #[test]
@@ -131,10 +139,14 @@ mod tests {
         let mut db = RootDatabase::default();
         let file = SourceFile::with_defaults(&db, SRC.to_string());
         let before = parsed_module(&db, file);
-        file.set_parse_options(&mut db)
-            .to(ParseOptions { loose_endscript_termination: false });
+        file.set_parse_options(&mut db).to(ParseOptions {
+            loose_endscript_termination: false,
+        });
         let after = parsed_module(&db, file);
-        assert!(!GreenNode::ptr_eq(before.green(), after.green()), "options are a parse input");
+        assert!(
+            !GreenNode::ptr_eq(before.green(), after.green()),
+            "options are a parse input"
+        );
         assert_eq!(after.options().loose_endscript_termination, false);
     }
 }

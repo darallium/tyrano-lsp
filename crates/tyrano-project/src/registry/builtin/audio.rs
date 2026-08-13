@@ -1,17 +1,29 @@
 //! Audio tags: BGM, sound effects, voice configuration, and audio waits.
 
-use super::{ExtraParams::{Allow, Deny}, TagSpec, opt, optd, req, tag};
 use super::ValueKind::{Asset, Boolean, Enum, Number, Text};
+use super::{
+    ExtraParams::{Allow, Deny},
+    TagSpec, opt, optd, req, tag,
+};
 use crate::project::AssetKind;
 
 pub(super) const TAGS: &[TagSpec] = &[
     tag(
         "playbgm",
-        &[req("storage", Asset(AssetKind::Bgm)), optd("loop", Boolean, "true"), opt("volume", Number)],
+        &[
+            req("storage", Asset(AssetKind::Bgm)),
+            optd("loop", Boolean, "true"),
+            opt("volume", Number),
+        ],
         Allow,
         "play background music",
     ),
-    tag("stopbgm", &[opt("time", Number)], Allow, "stop the background music"),
+    tag(
+        "stopbgm",
+        &[opt("time", Number)],
+        Allow,
+        "stop the background music",
+    ),
     tag(
         "fadeinbgm",
         &[
@@ -29,7 +41,12 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "fadeoutbgm",
-        &[optd("loop", Boolean, "true"), opt("storage", Asset(AssetKind::Bgm)), optd("fadeout", Boolean, "true"), optd("time", Number, "2000")],
+        &[
+            optd("loop", Boolean, "true"),
+            opt("storage", Asset(AssetKind::Bgm)),
+            optd("fadeout", Boolean, "true"),
+            optd("time", Number, "2000"),
+        ],
         Deny,
         "stop the background music with a fade-out",
     ),
@@ -48,13 +65,21 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "pausebgm",
-        &[optd("target", Enum(&["bgm", "se"]), "bgm"), opt("buf", Number), optd("next", Boolean, "true")],
+        &[
+            optd("target", Enum(&["bgm", "se"]), "bgm"),
+            opt("buf", Number),
+            optd("next", Boolean, "true"),
+        ],
         Deny,
         "pause the currently playing background music",
     ),
     tag(
         "resumebgm",
-        &[optd("target", Enum(&["bgm", "se"]), "bgm"), opt("buf", Number), optd("next", Boolean, "true")],
+        &[
+            optd("target", Enum(&["bgm", "se"]), "bgm"),
+            opt("buf", Number),
+            optd("next", Boolean, "true"),
+        ],
         Deny,
         "resume background music paused by [pausebgm]",
     ),
@@ -74,11 +99,20 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "playse",
-        &[req("storage", Asset(AssetKind::Sound)), optd("loop", Boolean, "false"), opt("volume", Number)],
+        &[
+            req("storage", Asset(AssetKind::Sound)),
+            optd("loop", Boolean, "false"),
+            opt("volume", Number),
+        ],
         Allow,
         "play a sound effect",
     ),
-    tag("stopse", &[opt("time", Number)], Allow, "stop sound effects"),
+    tag(
+        "stopse",
+        &[opt("time", Number)],
+        Allow,
+        "stop sound effects",
+    ),
     tag(
         "fadeinse",
         &[
@@ -110,13 +144,21 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "pausese",
-        &[optd("target", Enum(&["bgm", "se"]), "se"), opt("buf", Number), optd("next", Boolean, "true")],
+        &[
+            optd("target", Enum(&["bgm", "se"]), "se"),
+            opt("buf", Number),
+            optd("next", Boolean, "true"),
+        ],
         Deny,
         "pause the currently playing sound effect",
     ),
     tag(
         "resumese",
-        &[optd("target", Enum(&["bgm", "se"]), "se"), opt("buf", Number), optd("next", Boolean, "true")],
+        &[
+            optd("target", Enum(&["bgm", "se"]), "se"),
+            opt("buf", Number),
+            optd("next", Boolean, "true"),
+        ],
         Deny,
         "resume a sound effect paused by [pausese]",
     ),
@@ -134,7 +176,13 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "changevol",
-        &[optd("target", Enum(&["bgm", "se"]), "bgm"), opt("volume", Number), opt("buf", Number), opt("time", Number), optd("next", Boolean, "true")],
+        &[
+            optd("target", Enum(&["bgm", "se"]), "bgm"),
+            opt("volume", Number),
+            opt("buf", Number),
+            opt("time", Number),
+            optd("next", Boolean, "true"),
+        ],
         Deny,
         "change the volume of currently playing audio",
     ),
@@ -144,9 +192,19 @@ pub(super) const TAGS: &[TagSpec] = &[
             opt("volume", Text),
             opt("time", Number),
             opt("tailtime", Number),
-            opt("frequency", Enum(&["A", "A+", "B", "B+", "C", "C+", "D", "D+", "E", "E+", "F", "F+", "G", "G+"])),
+            opt(
+                "frequency",
+                Enum(&[
+                    "A", "A+", "B", "B+", "C", "C+", "D", "D+", "E", "E+", "F", "F+", "G", "G+",
+                ]),
+            ),
             opt("octave", Number),
-            opt("type", Enum(&["sine", "square", "sawtooth", "triangle", "noise", "file", "none"])),
+            opt(
+                "type",
+                Enum(&[
+                    "sine", "square", "sawtooth", "triangle", "noise", "file", "none",
+                ]),
+            ),
             opt("mode", Enum(&["everyone", "interval"])),
             opt("buf", Number),
             opt("storage", Text),
@@ -158,14 +216,46 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "voconfig",
-        &[opt("sebuf", Number), opt("name", Text), opt("vostorage", Text), opt("number", Number), opt("waittime", Number), opt("preload", Boolean)],
+        &[
+            opt("sebuf", Number),
+            opt("name", Text),
+            opt("vostorage", Text),
+            opt("number", Number),
+            opt("waittime", Number),
+            opt("preload", Boolean),
+        ],
         Deny,
         "configure automatic voice playback for a character",
     ),
-    tag("vostart", &[], Deny, "start automatic voice playback configured by [voconfig]"),
+    tag(
+        "vostart",
+        &[],
+        Deny,
+        "start automatic voice playback configured by [voconfig]",
+    ),
     tag("vostop", &[], Deny, "stop automatic voice playback"),
-    tag("speak_on", &[optd("volume", Number, "100"), optd("pitch", Number, "100"), optd("rate", Number, "100"), optd("cancel", Boolean, "false")], Deny, "enable text-to-speech narration"),
-    tag("speak_off", &[opt("volume", Number)], Deny, "disable text-to-speech narration"),
-    tag("wbgm", &[], Deny, "wait for background music playback to finish"),
+    tag(
+        "speak_on",
+        &[
+            optd("volume", Number, "100"),
+            optd("pitch", Number, "100"),
+            optd("rate", Number, "100"),
+            optd("cancel", Boolean, "false"),
+        ],
+        Deny,
+        "enable text-to-speech narration",
+    ),
+    tag(
+        "speak_off",
+        &[opt("volume", Number)],
+        Deny,
+        "disable text-to-speech narration",
+    ),
+    tag(
+        "wbgm",
+        &[],
+        Deny,
+        "wait for background music playback to finish",
+    ),
     tag("wse", &[], Deny, "wait for sound effect playback to finish"),
 ];

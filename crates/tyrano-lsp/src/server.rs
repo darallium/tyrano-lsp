@@ -31,9 +31,7 @@ pub fn server_capabilities() -> ServerCapabilities {
         text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
         hover_provider: Some(HoverProviderCapability::Simple(true)),
         completion_provider: Some(CompletionOptions {
-            trigger_characters: Some(
-                ["[", "@", "=", "*", "/", "\""].map(str::to_string).to_vec(),
-            ),
+            trigger_characters: Some(["[", "@", "=", "*", "/", "\""].map(str::to_string).to_vec()),
             ..CompletionOptions::default()
         }),
         definition_provider: Some(OneOf::Left(true)),
@@ -66,15 +64,16 @@ pub fn run(connection: Connection) -> Result<()> {
 /// The workspace root from initialize params (first workspace folder,
 /// falling back to the deprecated `root_uri`).
 fn workspace_root(params: &InitializeParams) -> Option<PathBuf> {
-    if let Some(folders) = &params.workspace_folders {
-        if let Some(folder) = folders.first() {
-            if let Ok(path) = folder.uri.to_file_path() {
+    if let Some(folders) = &params.workspace_folders
+        && let Some(folder) = folders.first()
+            && let Ok(path) = folder.uri.to_file_path() {
                 return Some(path);
             }
-        }
-    }
     #[allow(deprecated)]
-    params.root_uri.as_ref().and_then(|uri| uri.to_file_path().ok())
+    params
+        .root_uri
+        .as_ref()
+        .and_then(|uri| uri.to_file_path().ok())
 }
 
 fn main_loop(connection: Connection, mut session: Session) -> Result<()> {
@@ -115,9 +114,9 @@ fn handle_request(session: &Session, request: Request) -> Response {
         "textDocument/references" => {
             with_params(request, |p: ReferenceParams| references(session, p))
         }
-        "textDocument/documentSymbol" => {
-            with_params(request, |p: DocumentSymbolParams| document_symbols(session, p))
-        }
+        "textDocument/documentSymbol" => with_params(request, |p: DocumentSymbolParams| {
+            document_symbols(session, p)
+        }),
         _ => {
             return Response::new_err(
                 id,
@@ -133,10 +132,7 @@ fn handle_request(session: &Session, request: Request) -> Response {
 }
 
 /// Deserializes params and serializes the handler's result.
-fn with_params<P, R>(
-    request: Request,
-    handler: impl FnOnce(P) -> R,
-) -> Result<serde_json::Value>
+fn with_params<P, R>(request: Request, handler: impl FnOnce(P) -> R) -> Result<serde_json::Value>
 where
     P: serde::de::DeserializeOwned,
     R: serde::Serialize,
@@ -155,7 +151,11 @@ fn resolve_position(
     let file = session.file_at(&abs)?;
     let db = session.db();
     let source = file.source(db);
-    let offset = position_to_offset(source.text(db), &tyrano_db::line_index(db, source), position)?;
+    let offset = position_to_offset(
+        source.text(db),
+        &tyrano_db::line_index(db, source),
+        position,
+    )?;
     Some((file, offset))
 }
 
@@ -167,7 +167,11 @@ fn to_location(session: &Session, target: &ide::NavTarget) -> Option<Location> {
     let range = match db.file(&target.path) {
         Some(file) => {
             let source = file.source(db);
-            range_to_lsp(source.text(db), &tyrano_db::line_index(db, source), target.range)
+            range_to_lsp(
+                source.text(db),
+                &tyrano_db::line_index(db, source),
+                target.range,
+            )
         }
         // Not a loaded file (an asset): point at the top.
         None => lsp_types::Range::default(),
@@ -305,11 +309,10 @@ fn handle_notification(
             let mut params: lsp_types::DidChangeTextDocumentParams =
                 serde_json::from_value(notification.params)?;
             // Full sync: the last change carries the whole text.
-            if let Some(change) = params.content_changes.pop() {
-                if let Ok(abs) = params.text_document.uri.to_file_path() {
+            if let Some(change) = params.content_changes.pop()
+                && let Ok(abs) = params.text_document.uri.to_file_path() {
                     session.set_text(&abs, change.text);
                 }
-            }
             publish_all(connection, session, open_docs)?;
         }
         DidCloseTextDocument::METHOD => {
@@ -327,7 +330,9 @@ fn handle_notification(
             let params: lsp_types::DidChangeWatchedFilesParams =
                 serde_json::from_value(notification.params)?;
             for event in params.changes {
-                let Ok(abs) = event.uri.to_file_path() else { continue };
+                let Ok(abs) = event.uri.to_file_path() else {
+                    continue;
+                };
                 // Open documents are owned by the editor, not the disk.
                 if open_docs.contains(&event.uri) {
                     continue;
@@ -344,11 +349,7 @@ fn handle_notification(
 
 /// Publishes diagnostics for every open document. Cheap: each file's
 /// check is a memoized query, so unchanged files cost a lookup.
-fn publish_all(
-    connection: &Connection,
-    session: &Session,
-    open_docs: &HashSet<Url>,
-) -> Result<()> {
+fn publish_all(connection: &Connection, session: &Session, open_docs: &HashSet<Url>) -> Result<()> {
     for uri in open_docs {
         let diagnostics = uri
             .to_file_path()
@@ -383,15 +384,17 @@ fn file_diagnostics(session: &Session, file: File) -> Vec<Diagnostic> {
         .collect()
 }
 
-fn send_diagnostics(
-    connection: &Connection,
-    uri: Url,
-    diagnostics: Vec<Diagnostic>,
-) -> Result<()> {
-    let params = PublishDiagnosticsParams { uri, diagnostics, version: None };
-    connection.sender.send(Message::Notification(lsp_server::Notification {
-        method: PublishDiagnostics::METHOD.to_string(),
-        params: serde_json::to_value(params)?,
-    }))?;
+fn send_diagnostics(connection: &Connection, uri: Url, diagnostics: Vec<Diagnostic>) -> Result<()> {
+    let params = PublishDiagnosticsParams {
+        uri,
+        diagnostics,
+        version: None,
+    };
+    connection
+        .sender
+        .send(Message::Notification(lsp_server::Notification {
+            method: PublishDiagnostics::METHOD.to_string(),
+            params: serde_json::to_value(params)?,
+        }))?;
     Ok(())
 }

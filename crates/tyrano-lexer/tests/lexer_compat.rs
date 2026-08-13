@@ -44,8 +44,8 @@ fn html(s: &str) -> TokenType {
 }
 
 use TokenType::{
-    Asterisk, At, BlockCommentEnd, BlockCommentStart, Colon, Equal, HtmlEnd, HtmlStart,
-    IscriptEnd, IscriptStart, LBracket, Newline, Pipe, RBracket, Sharp, Underscore,
+    Asterisk, At, BlockCommentEnd, BlockCommentStart, Colon, Equal, HtmlEnd, HtmlStart, IscriptEnd,
+    IscriptStart, LBracket, Newline, Pipe, RBracket, Sharp, Underscore,
 };
 
 // ---------------------------------------------------------------------------
@@ -222,10 +222,7 @@ fn label_segments_are_trimmed() {
 #[test]
 fn label_extra_pipe_segments_are_dropped_by_default() {
     // Tyrano: label_val = split("|")[1]; anything after a second "|" is lost.
-    assert_eq!(
-        lex("*a|b|c"),
-        vec![Asterisk, text("a"), Pipe, text("b")]
-    );
+    assert_eq!(lex("*a|b|c"), vec![Asterisk, text("a"), Pipe, text("b")]);
 }
 
 #[test]
@@ -265,10 +262,7 @@ fn sharp_alone_clears_the_name() {
 #[test]
 fn chara_face_segments_beyond_the_first_are_dropped_by_default() {
     // Tyrano: face = split(":")[1]; the ":c" part is lost.
-    assert_eq!(
-        lex("#a:b:c"),
-        vec![Sharp, text("a"), Colon, text("b")]
-    );
+    assert_eq!(lex("#a:b:c"), vec![Sharp, text("a"), Colon, text("b")]);
 }
 
 #[test]
@@ -286,10 +280,7 @@ fn chara_face_segments_can_be_preserved() {
 #[test]
 fn chara_segments_are_not_trimmed_individually() {
     // Tyrano only trims the whole line, so "#a: b" keeps the space in face.
-    assert_eq!(
-        lex("#a: b"),
-        vec![Sharp, text("a"), Colon, text(" b")]
-    );
+    assert_eq!(lex("#a: b"), vec![Sharp, text("a"), Colon, text(" b")]);
 }
 
 // ---------------------------------------------------------------------------
@@ -395,7 +386,13 @@ fn spaces_around_equal_are_tolerated() {
 fn valueless_params_and_macro_star() {
     assert_eq!(
         lex("[macro_use * flag2]"),
-        vec![LBracket, ident("macro_use"), Asterisk, ident("flag2"), RBracket]
+        vec![
+            LBracket,
+            ident("macro_use"),
+            Asterisk,
+            ident("flag2"),
+            RBracket
+        ]
     );
 }
 
@@ -426,7 +423,14 @@ fn tag_name_may_start_with_a_digit() {
 fn tag_name_after_leading_spaces() {
     assert_eq!(
         lex("[ bg time=100]"),
-        vec![LBracket, ident("bg"), ident("time"), Equal, num("100"), RBracket]
+        vec![
+            LBracket,
+            ident("bg"),
+            ident("time"),
+            Equal,
+            num("100"),
+            RBracket
+        ]
     );
 }
 
@@ -521,7 +525,14 @@ fn undefined_value_becomes_empty_string() {
     // makeParam converts a trimmed "undefined" into "".
     assert_eq!(
         lex(r#"[a t="undefined"]"#),
-        vec![LBracket, ident("a"), ident("t"), Equal, string(""), RBracket]
+        vec![
+            LBracket,
+            ident("a"),
+            ident("t"),
+            Equal,
+            string(""),
+            RBracket
+        ]
     );
 }
 
@@ -533,7 +544,14 @@ fn undefined_value_becomes_empty_string() {
 fn keep_space_level_trim_ends_is_the_default() {
     assert_eq!(
         lex(r#"[a t=" x y "]"#),
-        vec![LBracket, ident("a"), ident("t"), Equal, string("x y"), RBracket]
+        vec![
+            LBracket,
+            ident("a"),
+            ident("t"),
+            Equal,
+            string("x y"),
+            RBracket
+        ]
     );
 }
 
@@ -545,7 +563,14 @@ fn keep_space_level_remove_all() {
     };
     assert_eq!(
         lex_cfg(r#"[a t=" x y "]"#, cfg),
-        vec![LBracket, ident("a"), ident("t"), Equal, string("xy"), RBracket]
+        vec![
+            LBracket,
+            ident("a"),
+            ident("t"),
+            Equal,
+            string("xy"),
+            RBracket
+        ]
     );
 }
 
@@ -557,7 +582,14 @@ fn keep_space_level_remove_all_spares_backquote_values() {
     };
     assert_eq!(
         lex_cfg("[a t=` x y `]", cfg),
-        vec![LBracket, ident("a"), ident("t"), Equal, string("x y"), RBracket]
+        vec![
+            LBracket,
+            ident("a"),
+            ident("t"),
+            Equal,
+            string("x y"),
+            RBracket
+        ]
     );
 }
 
@@ -569,7 +601,14 @@ fn keep_space_level_keep_all() {
     };
     assert_eq!(
         lex_cfg(r#"[a t=" x y "]"#, cfg),
-        vec![LBracket, ident("a"), ident("t"), Equal, string(" x y "), RBracket]
+        vec![
+            LBracket,
+            ident("a"),
+            ident("t"),
+            Equal,
+            string(" x y "),
+            RBracket
+        ]
     );
 }
 
@@ -775,6 +814,12 @@ fn every_physical_newline_produces_a_newline_token() {
 fn crlf_line_endings_are_handled() {
     assert_eq!(
         lex("*start\r\nこんにちは\r\n"),
-        vec![Asterisk, text("start"), Newline, text("こんにちは"), Newline]
+        vec![
+            Asterisk,
+            text("start"),
+            Newline,
+            text("こんにちは"),
+            Newline
+        ]
     );
 }

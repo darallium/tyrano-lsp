@@ -90,14 +90,20 @@ mod tests {
     fn roundtrips_green_tree() {
         let module = ParsedModule::from_parse(&parse(SRC));
         assert_eq!(module.green().to_source(), SRC);
-        assert_eq!(module.syntax().text_range().len(), tyrano_syntax::text::TextSize::of(SRC));
+        assert_eq!(
+            module.syntax().text_range().len(),
+            tyrano_syntax::text::TextSize::of(SRC)
+        );
     }
 
     #[test]
     fn eq_is_structural() {
         let a = ParsedModule::from_parse(&parse(SRC));
         let b = ParsedModule::from_parse(&parse(SRC));
-        assert!(!GreenNode::ptr_eq(a.green(), b.green()), "independent parses");
+        assert!(
+            !GreenNode::ptr_eq(a.green(), b.green()),
+            "independent parses"
+        );
         assert_eq!(a, b);
         let c = ParsedModule::from_parse(&parse("*other\n"));
         assert_ne!(a, c);

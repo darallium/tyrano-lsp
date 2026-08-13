@@ -15,7 +15,7 @@ use crate::index::{EmbeddedLang, EmbeddedRegion, PlaceId, PlaceOccurrence, Seman
 use crate::place::{self, AccessKind, Place};
 use crate::scope::{Scope, ScopeId, ScopeKind};
 use crate::symbol::{Definition, DefinitionId, Symbol, SymbolId, SymbolKind};
-use crate::use_def::{Reference, RefKind, Resolution};
+use crate::use_def::{RefKind, Reference, Resolution};
 
 /// Tags that navigate to `target=*label` when no (non-empty) `storage=`
 /// parameter redirects them to another file. Besides the classic four,
@@ -41,7 +41,11 @@ pub fn build_index(
     };
 
     let file_range = scenario.syntax().text_range();
-    builder.index.scopes.push(Scope { kind: ScopeKind::Root, parent: None, range: file_range });
+    builder.index.scopes.push(Scope {
+        kind: ScopeKind::Root,
+        parent: None,
+        range: file_range,
+    });
 
     for line in scenario.lines() {
         builder.line(&line);
@@ -155,16 +159,27 @@ impl Builder<'_> {
                 let name = l.name().unwrap_or_default();
                 let name_range = l.name_token().map_or(full_range, |t| t.text_range());
                 let scope = self.current_scope();
-                let (_, first) =
-                    self.define(SymbolKind::Label, &name, node, name_range, full_range, scope);
+                let (_, first) = self.define(
+                    SymbolKind::Label,
+                    &name,
+                    node,
+                    name_range,
+                    full_range,
+                    scope,
+                );
                 if let Some(first) = first {
-                    self.error(SemanticErrorKind::DuplicateLabel { name, first }, name_range);
+                    self.error(
+                        SemanticErrorKind::DuplicateLabel { name, first },
+                        name_range,
+                    );
                 }
             }
             Line::Chara(c) => {
                 let node = self.enter_item(c.syntax());
                 let full_range = c.syntax().text_range();
-                let Some(name) = c.name().filter(|n| !n.is_empty()) else { return };
+                let Some(name) = c.name().filter(|n| !n.is_empty()) else {
+                    return;
+                };
                 let name_range = c
                     .syntax()
                     .children()
@@ -172,7 +187,14 @@ impl Builder<'_> {
                     .map_or(full_range, |n| n.text_range());
                 let scope = self.current_scope();
                 // Duplicate characters are legal and common; no error.
-                self.define(SymbolKind::Character, &name, node, name_range, full_range, scope);
+                self.define(
+                    SymbolKind::Character,
+                    &name,
+                    node,
+                    name_range,
+                    full_range,
+                    scope,
+                );
             }
             Line::Text(t) => {
                 self.enter_item(t.syntax());
@@ -227,14 +249,20 @@ impl Builder<'_> {
                     .map_or(block.text_range().start(), |open| open.text_range().end());
                 TextRange::new(anchor, anchor)
             });
-        self.index.embedded_regions.push(EmbeddedRegion { lang, block: node, code_range });
+        self.index.embedded_regions.push(EmbeddedRegion {
+            lang,
+            block: node,
+            code_range,
+        });
     }
 
     fn tag(&mut self, tag: &impl Tag) {
         let node = self.enter_item(tag.syntax());
         let tag_range = tag.syntax().text_range();
         let name = tag.name();
-        let name_range = tag.tag_name().map_or(tag_range, |n| n.syntax().text_range());
+        let name_range = tag
+            .tag_name()
+            .map_or(tag_range, |n| n.syntax().text_range());
 
         // The engine fills a JS object with params left to right, so a
         // repeated name silently drops the earlier value — warn on every
@@ -265,8 +293,9 @@ impl Builder<'_> {
                 for p in tag.params() {
                     let value = || {
                         let cooked = p.cooked_value(self.opts)?;
-                        let range =
-                            p.value_node().map_or_else(|| p.syntax().text_range(), |v| v.syntax().text_range());
+                        let range = p
+                            .value_node()
+                            .map_or_else(|| p.syntax().text_range(), |v| v.syntax().text_range());
                         Some((cooked, range))
                     };
                     match p.name().as_str() {
@@ -278,9 +307,9 @@ impl Builder<'_> {
                 }
 
                 // `[chara_new name=…]` is a definition site, not a reference.
-                if name == "chara_new" {
-                    if let Some((chara, range)) = &name_param {
-                        if !chara.is_empty() {
+                if name == "chara_new"
+                    && let Some((chara, range)) = &name_param
+                        && !chara.is_empty() {
                             let scope = self.current_scope();
                             self.define(
                                 SymbolKind::Character,
@@ -291,8 +320,6 @@ impl Builder<'_> {
                                 scope,
                             );
                         }
-                    }
-                }
 
                 self.tag_sites.push(TagSite {
                     node,
@@ -311,10 +338,9 @@ impl Builder<'_> {
 
     fn macro_def(&mut self, tag: &impl Tag, node: ErasedAstId, tag_range: TextRange) {
         if let Some(open) = &self.open_macro {
-            let outer =
-                self.index.symbols[self.index.definitions[open.def.index()].symbol.index()]
-                    .name
-                    .clone();
+            let outer = self.index.symbols[self.index.definitions[open.def.index()].symbol.index()]
+                .name
+                .clone();
             self.error(SemanticErrorKind::NestedMacro { outer }, tag_range);
             return;
         }
@@ -331,10 +357,19 @@ impl Builder<'_> {
 
         // The [macro] tag itself sits in the root scope; the body scope
         // starts right after it (its end is patched at [endmacro]/EOF).
-        let (def, first) =
-            self.define(SymbolKind::Macro, &name, node, name_range, tag_range, ScopeId::ROOT);
+        let (def, first) = self.define(
+            SymbolKind::Macro,
+            &name,
+            node,
+            name_range,
+            tag_range,
+            ScopeId::ROOT,
+        );
         if let Some(first) = first {
-            self.error(SemanticErrorKind::DuplicateMacro { name, first }, name_range);
+            self.error(
+                SemanticErrorKind::DuplicateMacro { name, first },
+                name_range,
+            );
         }
         let scope = ScopeId(self.index.scopes.len() as u32);
         self.index.scopes.push(Scope {
@@ -361,7 +396,9 @@ impl Builder<'_> {
     fn places(&mut self, tag: &impl Tag, node: ErasedAstId) {
         let mut found: Vec<(Place, TextRange, AccessKind)> = Vec::new();
         for p in tag.params() {
-            let Some(value) = p.value_node() else { continue };
+            let Some(value) = p.value_node() else {
+                continue;
+            };
             match p.name().as_str() {
                 "exp" | "cond" => {
                     let expr = value.expr();
@@ -411,7 +448,9 @@ impl Builder<'_> {
             self.resolve_site(site, def_count);
         }
 
-        self.index.errors.sort_by_key(|e| (e.range.start(), e.range.end()));
+        self.index
+            .errors
+            .sort_by_key(|e| (e.range.start(), e.range.end()));
         self.index
     }
 
@@ -435,9 +474,9 @@ impl Builder<'_> {
             );
         }
 
-        if CHARA_REF_TAGS.contains(&site.name.as_str()) {
-            if let Some((name, range)) = &site.name_param {
-                if !name.is_empty() {
+        if CHARA_REF_TAGS.contains(&site.name.as_str())
+            && let Some((name, range)) = &site.name_param
+                && !name.is_empty() {
                     // Unknown characters are recorded, not diagnosed: they
                     // are routinely defined in another file.
                     let resolution = match self.index.charas_by_name.get(name) {
@@ -455,8 +494,6 @@ impl Builder<'_> {
                         def_count,
                     );
                 }
-            }
-        }
     }
 
     fn resolve_jump(&mut self, site: &TagSite, def_count: usize) {
@@ -491,7 +528,12 @@ impl Builder<'_> {
         let resolution = match self.index.labels_by_name.get(&label) {
             Some(&sym) => Resolution::Def(self.index.symbols[sym.index()].defs[0]),
             None => {
-                self.error(SemanticErrorKind::UnknownLabelTarget { name: label.clone() }, range);
+                self.error(
+                    SemanticErrorKind::UnknownLabelTarget {
+                        name: label.clone(),
+                    },
+                    range,
+                );
                 Resolution::Unknown
             }
         };
@@ -550,7 +592,10 @@ mod tests {
             panic!("wrong kind: {err:?}");
         };
         assert_eq!(name, "a");
-        assert!(first.start() < err.range.start(), "primary is the second site");
+        assert!(
+            first.start() < err.range.start(),
+            "primary is the second site"
+        );
     }
 
     #[test]
@@ -567,7 +612,10 @@ mod tests {
 
     #[test]
     fn jump_to_known_label_resolves() {
-        for src in ["*start\n[jump target=*start]\n", "*start\n@call target=*start\n"] {
+        for src in [
+            "*start\n[jump target=*start]\n",
+            "*start\n@call target=*start\n",
+        ] {
             let idx = index(src);
             assert!(idx.errors().is_empty(), "{:?}", idx.errors());
             let uses = idx.use_def().uses();
@@ -649,7 +697,9 @@ mod tests {
         assert_eq!(idx.scopes().len(), 2);
         let body = idx.scope(crate::scope::ScopeId(1));
         assert_eq!(body.parent, Some(ScopeId::ROOT));
-        let ScopeKind::MacroBody { def } = &body.kind else { panic!("not a macro body") };
+        let ScopeKind::MacroBody { def } = &body.kind else {
+            panic!("not a macro body")
+        };
         assert_eq!(*def, sym.defs[0]);
         // Body runs from after the [macro] tag to the end of [endmacro].
         let macro_tag_end = src.find("]\n").unwrap() + 1;
@@ -731,8 +781,12 @@ mod tests {
     fn tag_matching_local_macro_is_macro_call_use() {
         let idx = index("[macro name=greet]\n[endmacro]\n[greet]\n@greet\n");
         assert!(idx.errors().is_empty(), "{:?}", idx.errors());
-        let calls: Vec<_> =
-            idx.use_def().uses().iter().filter(|u| u.kind == RefKind::MacroCall).collect();
+        let calls: Vec<_> = idx
+            .use_def()
+            .uses()
+            .iter()
+            .filter(|u| u.kind == RefKind::MacroCall)
+            .collect();
         assert_eq!(calls.len(), 2);
         let def = idx.symbol(idx.macro_("greet").unwrap()).defs[0];
         for call in calls {
@@ -808,8 +862,8 @@ mod tests {
         assert_eq!(occs[0].place, occs[1].place);
         assert_eq!(idx.places().len(), 1);
         // Ranges are file-absolute.
-        let text = &src[u32::from(occs[0].range.start()) as usize
-            ..u32::from(occs[0].range.end()) as usize];
+        let text = &src
+            [u32::from(occs[0].range.start()) as usize..u32::from(occs[0].range.end()) as usize];
         assert_eq!(text, "f.hp");
     }
 
@@ -856,10 +910,12 @@ mod tests {
         let idx = index(src);
         assert_eq!(error_codes(&idx), ["sem-duplicate-param"]);
         let err = &idx.errors()[0];
-        assert_eq!(err.severity(), tyrano_syntax::diagnostics::Severity::Warning);
+        assert_eq!(
+            err.severity(),
+            tyrano_syntax::diagnostics::Severity::Warning
+        );
         // Anchored at the SECOND occurrence.
-        let text =
-            &src[u32::from(err.range.start()) as usize..u32::from(err.range.end()) as usize];
+        let text = &src[u32::from(err.range.start()) as usize..u32::from(err.range.end()) as usize];
         assert_eq!(text, "storage=b.png");
     }
 
@@ -916,8 +972,10 @@ mod tests {
         let idx = index("[macro name=greet]\n[eval exp=\"f.count = mp.n\"]\n[endmacro]\n");
         let occs = idx.place_occurrences();
         assert_eq!(occs.len(), 2);
-        let mp = occs.iter().find(|o| idx.place(o.place).root == PlaceRoot::MacroParams).unwrap();
+        let mp = occs
+            .iter()
+            .find(|o| idx.place(o.place).root == PlaceRoot::MacroParams)
+            .unwrap();
         assert_eq!(idx.scope_of(mp.node), crate::scope::ScopeId(1));
     }
 }
-

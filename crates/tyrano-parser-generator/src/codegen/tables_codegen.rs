@@ -1,14 +1,13 @@
 //! Parse tables code generation
 
+use crate::ParserError::GrammarError;
 use crate::Result;
+use crate::generator::Action;
 use crate::generator::ParseTable;
 use crate::grammar::GrammarParser;
-use crate::generator::Action;
-use crate::ParserError::GrammarError;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-
 
 /// Generate tables.rs with action/goto tables
 pub fn generate(src_dir: &Path, parse_table: &ParseTable, grammar: &GrammarParser) -> Result<()> {
@@ -90,7 +89,7 @@ pub enum Action {
 
     // Generate function get the name of a terminal symbol by its ID
     code.push_str(
-r#"/// Get the name of a terminal symbol by its ID
+        r#"/// Get the name of a terminal symbol by its ID
 #[allow(dead_code)]
 pub fn token_type_to_id(tt: &TokenType) -> u32 {
     match tt {
@@ -123,7 +122,8 @@ pub fn token_type_to_id(tt: &TokenType) -> u32 {
     }
 }
 
-"#);
+"#,
+    );
 
     // Find max state ID
     let max_state = parse_table
@@ -266,7 +266,7 @@ pub fn token_type_to_id(tt: &TokenType) -> u32 {
     for state in states {
         if let Some(symbols) = state_to_expected.get(&state) {
             // Deduplicate and sort symbols
-            let mut unique_symbols: Vec<_> = symbols.iter().copied().collect();
+            let mut unique_symbols: Vec<_> = symbols.to_vec();
             unique_symbols.sort();
             unique_symbols.dedup();
 
@@ -284,9 +284,8 @@ pub fn token_type_to_id(tt: &TokenType) -> u32 {
     code.push_str("}\n");
 
     let path = src_dir.join("tables.rs");
-    fs::write(&path, code).map_err(|e| {
-        GrammarError(format!("Failed to write tables.rs: {}", e))
-    })?;
+    fs::write(&path, code)
+        .map_err(|e| GrammarError(format!("Failed to write tables.rs: {}", e)))?;
 
     Ok(())
 }

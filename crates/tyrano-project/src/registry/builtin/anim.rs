@@ -1,8 +1,12 @@
 //! Animation tags: tweens, keyframe animations, screen shakes, and
 //! their stop/wait counterparts.
 
-use super::{EASE_EFFECTS, ExtraParams::{Allow, Deny}, TagSpec, opt, optd, req, tag};
 use super::ValueKind::{Asset, Boolean, Color, Enum, Number, Text};
+use super::{
+    EASE_EFFECTS,
+    ExtraParams::{Allow, Deny},
+    TagSpec, opt, optd, req, tag,
+};
 use crate::project::AssetKind;
 
 pub(super) const TAGS: &[TagSpec] = &[
@@ -23,8 +27,18 @@ pub(super) const TAGS: &[TagSpec] = &[
         Allow,
         "tween an image, button, or layer's position/size/opacity/color",
     ),
-    tag("keyframe", &[req("name", Text)], Allow, "begin a keyframe animation definition"),
-    tag("endkeyframe", &[], Allow, "end a keyframe animation definition"),
+    tag(
+        "keyframe",
+        &[req("name", Text)],
+        Allow,
+        "begin a keyframe animation definition",
+    ),
+    tag(
+        "endkeyframe",
+        &[],
+        Allow,
+        "end a keyframe animation definition",
+    ),
     tag(
         "kanim",
         &[req("keyframe", Text), opt("name", Text), opt("layer", Text)],
@@ -54,30 +68,62 @@ pub(super) const TAGS: &[TagSpec] = &[
         Allow,
         "play a general-purpose animation (tween or keyframe-based)",
     ),
-    tag("stopanim", &[req("name", Text)], Deny, "forcibly stop a running [anim] animation"),
-    tag("stop_kanim", &[opt("name", Text), opt("layer", Text)], Deny, "stop a running keyframe animation"),
+    tag(
+        "stopanim",
+        &[req("name", Text)],
+        Deny,
+        "forcibly stop a running [anim] animation",
+    ),
+    tag(
+        "stop_kanim",
+        &[opt("name", Text), opt("layer", Text)],
+        Deny,
+        "stop a running keyframe animation",
+    ),
     tag(
         "stop_xanim",
-        &[opt("name", Text), opt("layer", Text), optd("complete", Boolean, "false")],
+        &[
+            opt("name", Text),
+            opt("layer", Text),
+            optd("complete", Boolean, "false"),
+        ],
         Deny,
         "stop a running [xanim] animation",
     ),
     tag("wa", &[], Deny, "wait for all running animations to finish"),
     tag(
         "quake",
-        &[req("time", Number), optd("count", Number, "5"), opt("timemode", Text), optd("hmax", Number, "0"), optd("vmax", Number, "10"), optd("wait", Boolean, "true")],
+        &[
+            req("time", Number),
+            optd("count", Number, "5"),
+            opt("timemode", Text),
+            optd("hmax", Number, "0"),
+            optd("vmax", Number, "10"),
+            optd("wait", Boolean, "true"),
+        ],
         Deny,
         "shake the screen for a duration",
     ),
     tag(
         "quake2",
-        &[optd("time", Number, "1000"), optd("hmax", Number, "0"), optd("vmax", Number, "200"), optd("wait", Boolean, "true"), optd("copybase", Boolean, "true"), optd("skippable", Boolean, "true")],
+        &[
+            optd("time", Number, "1000"),
+            optd("hmax", Number, "0"),
+            optd("vmax", Number, "200"),
+            optd("wait", Boolean, "true"),
+            optd("copybase", Boolean, "true"),
+            optd("skippable", Boolean, "true"),
+        ],
         Deny,
         "shake the screen (v2, smoother continuous shake)",
     ),
     tag(
         "vibrate",
-        &[optd("time", Text, "500"), optd("power", Number, "100"), opt("count", Number)],
+        &[
+            optd("time", Text, "500"),
+            optd("power", Number, "100"),
+            opt("count", Number),
+        ],
         Deny,
         "vibrate the mobile device or gamepad",
     ),

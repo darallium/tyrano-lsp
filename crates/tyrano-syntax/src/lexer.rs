@@ -36,7 +36,9 @@ pub struct LexOptions {
 
 impl Default for LexOptions {
     fn default() -> Self {
-        LexOptions { loose_endscript_termination: true }
+        LexOptions {
+            loose_endscript_termination: true,
+        }
     }
 }
 
@@ -111,7 +113,11 @@ struct Lexer<'s> {
 
 impl<'s> Lexer<'s> {
     fn run(&mut self) {
-        let bom_len = if self.src.starts_with('\u{feff}') { '\u{feff}'.len_utf8() } else { 0 };
+        let bom_len = if self.src.starts_with('\u{feff}') {
+            '\u{feff}'.len_utf8()
+        } else {
+            0
+        };
         if bom_len > 0 {
             self.emit(SyntaxKind::BOM, 0, bom_len);
         }
@@ -124,8 +130,11 @@ impl<'s> Lexer<'s> {
             let nl = self.src[pos..].find('\n').map(|i| pos + i);
             let (content_end, newline) = match nl {
                 Some(nl) => {
-                    let content_end =
-                        if nl > pos && self.src.as_bytes()[nl - 1] == b'\r' { nl - 1 } else { nl };
+                    let content_end = if nl > pos && self.src.as_bytes()[nl - 1] == b'\r' {
+                        nl - 1
+                    } else {
+                        nl
+                    };
                     (content_end, Some((content_end, nl + 1)))
                 }
                 None => (len, None),
@@ -213,7 +222,11 @@ impl<'s> Lexer<'s> {
         }
 
         if !content.is_empty() {
-            let kind = if is_iscript { SyntaxKind::SCRIPT_TEXT } else { SyntaxKind::HTML_TEXT };
+            let kind = if is_iscript {
+                SyntaxKind::SCRIPT_TEXT
+            } else {
+                SyntaxKind::HTML_TEXT
+            };
             self.emit(kind, start, end);
         }
     }
@@ -235,7 +248,10 @@ impl<'s> Lexer<'s> {
             return;
         }
 
-        let first = self.src[trimmed_start..].chars().next().expect("non-empty rest");
+        let first = self.src[trimmed_start..]
+            .chars()
+            .next()
+            .expect("non-empty rest");
         match first {
             ';' => {
                 self.emit(SyntaxKind::SEMICOLON, trimmed_start, trimmed_start + 1);
@@ -267,7 +283,10 @@ impl<'s> Lexer<'s> {
     /// itself contain more separators — truncation is an interpretation,
     /// not a token boundary).
     fn lex_split_segments(&mut self, start: usize, end: usize, sep: u8, sep_kind: SyntaxKind) {
-        match self.src.as_bytes()[start..end].iter().position(|&b| b == sep) {
+        match self.src.as_bytes()[start..end]
+            .iter()
+            .position(|&b| b == sep)
+        {
             Some(i) => {
                 let sep_at = start + i;
                 self.emit_nonempty(SyntaxKind::TEXT, start, sep_at);
@@ -328,11 +347,14 @@ impl<'s> Lexer<'s> {
             self.emit(SyntaxKind::R_BRACKET, body_end, body_end + 1);
         } else {
             self.diag(
-                Diagnostic::new(DiagCode::ParseUnterminatedTag, TextRange::empty(size(body_end)))
-                    .with_secondary(
-                        TextRange::new(size(open), size(open + 1)),
-                        SecondaryKind::OpenedHere,
-                    ),
+                Diagnostic::new(
+                    DiagCode::ParseUnterminatedTag,
+                    TextRange::empty(size(body_end)),
+                )
+                .with_secondary(
+                    TextRange::new(size(open), size(open + 1)),
+                    SecondaryKind::OpenedHere,
+                ),
             );
         }
         self.enter_block_mode_if_needed(&name);
@@ -474,9 +496,7 @@ impl<'s> Lexer<'s> {
         // excludes it); either way, the raw text to `end` is the value.
         let code = match tag_end {
             TagEnd::Bracket { compensated: true } => DiagCode::CompatCompensatedQuote,
-            TagEnd::Bracket { compensated: false } | TagEnd::Eol => {
-                DiagCode::LexUnterminatedString
-            }
+            TagEnd::Bracket { compensated: false } | TagEnd::Eol => DiagCode::LexUnterminatedString,
         };
         self.diag(Diagnostic::new(code, TextRange::new(size(open), size(end))));
         self.emit(SyntaxKind::STRING, open, end);
@@ -526,7 +546,10 @@ impl<'s> Lexer<'s> {
         debug_assert_eq!(start, self.emitted, "tokens must be contiguous");
         debug_assert!(end >= start);
         if end > start {
-            self.tokens.push(RawToken { kind, len: size(end - start) });
+            self.tokens.push(RawToken {
+                kind,
+                len: size(end - start),
+            });
             self.emitted = end;
         }
     }
@@ -577,7 +600,11 @@ fn next_char_len(s: &str, i: usize) -> usize {
         return 0;
     }
     let b = s.as_bytes()[i];
-    if b < 0x80 { 1 } else { s[i..].chars().next().map_or(1, char::len_utf8) }
+    if b < 0x80 {
+        1
+    } else {
+        s[i..].chars().next().map_or(1, char::len_utf8)
+    }
 }
 
 fn is_ws_or_end(s: &str, i: usize, end: usize) -> bool {
@@ -648,7 +675,11 @@ mod tests {
     fn lex_kinds(source: &str, opts: &LexOptions) -> Vec<SyntaxKind> {
         let out = lex(source, opts);
         let total: u32 = out.tokens.iter().map(|t| t.len.raw()).sum();
-        assert_eq!(total as usize, source.len(), "coverage broken for {source:?}");
+        assert_eq!(
+            total as usize,
+            source.len(),
+            "coverage broken for {source:?}"
+        );
         out.tokens.iter().map(|t| t.kind).collect()
     }
 
@@ -678,7 +709,10 @@ mod tests {
     fn text_line_keeps_leading_ws_as_trivia() {
         assert_eq!(
             spell("  こんにちは  "),
-            vec![(K::WHITESPACE, "  ".into()), (K::TEXT, "こんにちは  ".into())]
+            vec![
+                (K::WHITESPACE, "  ".into()),
+                (K::TEXT, "こんにちは  ".into())
+            ]
         );
     }
 
@@ -717,7 +751,10 @@ mod tests {
 
     #[test]
     fn escaped_bracket_is_text() {
-        assert_eq!(spell(r"\[not a tag\]"), vec![(K::TEXT, r"\[not a tag\]".into())]);
+        assert_eq!(
+            spell(r"\[not a tag\]"),
+            vec![(K::TEXT, r"\[not a tag\]".into())]
+        );
     }
 
     #[test]
@@ -847,30 +884,62 @@ mod tests {
         let toks: Vec<_> = out.tokens.iter().map(|t| t.kind).collect();
         assert_eq!(
             toks,
-            vec![K::L_BRACKET, K::IDENT, K::WHITESPACE, K::IDENT, K::EQ, K::STRING, K::R_BRACKET]
+            vec![
+                K::L_BRACKET,
+                K::IDENT,
+                K::WHITESPACE,
+                K::IDENT,
+                K::EQ,
+                K::STRING,
+                K::R_BRACKET
+            ]
         );
-        assert!(out.diagnostics.iter().any(|d| matches!(d.code, DiagCode::CompatCompensatedQuote)));
+        assert!(
+            out.diagnostics
+                .iter()
+                .any(|d| matches!(d.code, DiagCode::CompatCompensatedQuote))
+        );
     }
 
     #[test]
     fn unterminated_inline_tag() {
         let out = lex("[ptext text=abc", &LexOptions::default());
         let toks: Vec<_> = out.tokens.iter().map(|t| t.kind).collect();
-        assert_eq!(toks, vec![K::L_BRACKET, K::IDENT, K::WHITESPACE, K::IDENT, K::EQ, K::TEXT]);
-        assert!(out.diagnostics.iter().any(|d| matches!(d.code, DiagCode::ParseUnterminatedTag)));
+        assert_eq!(
+            toks,
+            vec![
+                K::L_BRACKET,
+                K::IDENT,
+                K::WHITESPACE,
+                K::IDENT,
+                K::EQ,
+                K::TEXT
+            ]
+        );
+        assert!(
+            out.diagnostics
+                .iter()
+                .any(|d| matches!(d.code, DiagCode::ParseUnterminatedTag))
+        );
     }
 
     #[test]
     fn label_and_chara_lines() {
         assert_eq!(kinds("*start"), vec![K::STAR, K::TEXT]);
-        assert_eq!(kinds("*oped|オープニング"), vec![K::STAR, K::TEXT, K::PIPE, K::TEXT]);
+        assert_eq!(
+            kinds("*oped|オープニング"),
+            vec![K::STAR, K::TEXT, K::PIPE, K::TEXT]
+        );
         // The extra segment stays in the raw value token (interpretation
         // truncates later; the tree never loses it).
         assert_eq!(
             spell("*a|b|c")[2..].to_vec(),
             vec![(K::PIPE, "|".into()), (K::TEXT, "b|c".into())]
         );
-        assert_eq!(kinds("#akane:happy"), vec![K::SHARP, K::TEXT, K::COLON, K::TEXT]);
+        assert_eq!(
+            kinds("#akane:happy"),
+            vec![K::SHARP, K::TEXT, K::COLON, K::TEXT]
+        );
         assert_eq!(kinds("#"), vec![K::SHARP]);
         assert_eq!(spell("#a:b:c")[3].1, "b:c");
         // Empty leading segment keeps its separator position.
@@ -905,14 +974,24 @@ mod tests {
     #[test]
     fn orphan_close_is_label() {
         // `*/` outside a block comment is a label named `/` (engine quirk).
-        assert_eq!(spell("*/"), vec![(K::STAR, "*".into()), (K::TEXT, "/".into())]);
+        assert_eq!(
+            spell("*/"),
+            vec![(K::STAR, "*".into()), (K::TEXT, "/".into())]
+        );
         // `hoge */` does NOT close a block comment.
         let src = "/*\nhoge */\n*/\n";
         let out = lex(src, &LexOptions::default());
         let toks: Vec<_> = out.tokens.iter().map(|t| t.kind).collect();
         assert_eq!(
             toks,
-            vec![K::SLASH_STAR, K::NEWLINE, K::COMMENT_TEXT, K::NEWLINE, K::STAR_SLASH, K::NEWLINE]
+            vec![
+                K::SLASH_STAR,
+                K::NEWLINE,
+                K::COMMENT_TEXT,
+                K::NEWLINE,
+                K::STAR_SLASH,
+                K::NEWLINE
+            ]
         );
     }
 
@@ -942,31 +1021,53 @@ mod tests {
         let out = lex(src, &LexOptions::default());
         let toks: Vec<_> = out.tokens.iter().map(|t| t.kind).collect();
         assert!(toks.contains(&K::TEXT));
-        assert!(out.diagnostics.iter().any(|d| matches!(d.code, DiagCode::CompatLooseEndscript)));
+        assert!(
+            out.diagnostics
+                .iter()
+                .any(|d| matches!(d.code, DiagCode::CompatLooseEndscript))
+        );
         // Strict mode: the line stays script text and the block never ends.
-        let strict = LexOptions { loose_endscript_termination: false };
+        let strict = LexOptions {
+            loose_endscript_termination: false,
+        };
         let out = lex(src, &strict);
-        let script_lines = out.tokens.iter().filter(|t| t.kind == K::SCRIPT_TEXT).count();
+        let script_lines = out
+            .tokens
+            .iter()
+            .filter(|t| t.kind == K::SCRIPT_TEXT)
+            .count();
         assert_eq!(script_lines, 2);
         assert!(
-            out.diagnostics.iter().any(|d| matches!(d.code, DiagCode::LexUnterminatedIscript))
+            out.diagnostics
+                .iter()
+                .any(|d| matches!(d.code, DiagCode::LexUnterminatedIscript))
         );
     }
 
     #[test]
     fn endscript_boundary_is_exact() {
-        let strict = LexOptions { loose_endscript_termination: false };
+        let strict = LexOptions {
+            loose_endscript_termination: false,
+        };
         // `[endscript2]` does not close; `[endscript foo=1]` does.
         let src = "[iscript]\n[endscript2]\n[endscript foo=1]\n";
         let out = lex(src, &strict);
-        assert_eq!(out.line_modes, vec![LexMode::Default, LexMode::IScript, LexMode::IScript]);
+        assert_eq!(
+            out.line_modes,
+            vec![LexMode::Default, LexMode::IScript, LexMode::IScript]
+        );
         assert!(
-            !out.diagnostics.iter().any(|d| matches!(d.code, DiagCode::LexUnterminatedIscript))
+            !out.diagnostics
+                .iter()
+                .any(|d| matches!(d.code, DiagCode::LexUnterminatedIscript))
         );
         // `[ endscript]` with a leading space also closes.
         let out2 = lex("[iscript]\n[ endscript]\n", &strict);
         assert!(
-            !out2.diagnostics.iter().any(|d| matches!(d.code, DiagCode::LexUnterminatedIscript))
+            !out2
+                .diagnostics
+                .iter()
+                .any(|d| matches!(d.code, DiagCode::LexUnterminatedIscript))
         );
     }
 
@@ -1036,19 +1137,32 @@ mod tests {
 
     #[test]
     fn bom_is_trivia_token() {
-        assert_eq!(spell("\u{feff}text"), vec![(K::BOM, "\u{feff}".into()), (K::TEXT, "text".into())]);
+        assert_eq!(
+            spell("\u{feff}text"),
+            vec![(K::BOM, "\u{feff}".into()), (K::TEXT, "text".into())]
+        );
     }
 
     #[test]
     fn digit_leading_tag_name() {
-        assert_eq!(kinds("[3d_init]"), vec![K::L_BRACKET, K::IDENT, K::R_BRACKET]);
+        assert_eq!(
+            kinds("[3d_init]"),
+            vec![K::L_BRACKET, K::IDENT, K::R_BRACKET]
+        );
     }
 
     #[test]
     fn empty_value_param() {
         assert_eq!(
             kinds("[a t=]"),
-            vec![K::L_BRACKET, K::IDENT, K::WHITESPACE, K::IDENT, K::EQ, K::R_BRACKET]
+            vec![
+                K::L_BRACKET,
+                K::IDENT,
+                K::WHITESPACE,
+                K::IDENT,
+                K::EQ,
+                K::R_BRACKET
+            ]
         );
     }
 
@@ -1071,24 +1185,8 @@ mod tests {
     #[test]
     fn no_panic_on_odd_inputs() {
         for src in [
-            "\\",
-            "[",
-            "]",
-            "[]",
-            "[ ]",
-            "@",
-            "@ ",
-            "*",
-            "#\n",
-            "_",
-            ";",
-            "/*",
-            "*/x",
-            "[a=b=c]",
-            "[a \"q]",
-            "\u{feff}",
-            "\r",
-            "a\rb",
+            "\\", "[", "]", "[]", "[ ]", "@", "@ ", "*", "#\n", "_", ";", "/*", "*/x", "[a=b=c]",
+            "[a \"q]", "\u{feff}", "\r", "a\rb",
         ] {
             let out = lex(src, &LexOptions::default());
             let total: u32 = out.tokens.iter().map(|t| t.len.raw()).sum();

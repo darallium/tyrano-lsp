@@ -1,26 +1,41 @@
 //! Character tags: the `chara_*` family for defining, showing, moving,
 //! and layering character sprites.
 
-use super::{EASE_EFFECTS, ExtraParams::Allow, TagSpec, opt, optd, req, tag};
 use super::ValueKind::{Asset, Boolean, Enum, Number, Text};
+use super::{EASE_EFFECTS, ExtraParams::Allow, TagSpec, opt, optd, req, tag};
 use crate::project::AssetKind;
 
 pub(super) const TAGS: &[TagSpec] = &[
     tag(
         "chara_new",
-        &[req("name", Text), req("storage", Asset(AssetKind::FgImage)), opt("jname", Text)],
+        &[
+            req("name", Text),
+            req("storage", Asset(AssetKind::FgImage)),
+            opt("jname", Text),
+        ],
         Allow,
         "define a character and their default sprite",
     ),
     tag(
         "chara_show",
-        &[req("name", Text), opt("storage", Asset(AssetKind::FgImage)), opt("face", Text), opt("time", Number), opt("wait", Boolean)],
+        &[
+            req("name", Text),
+            opt("storage", Asset(AssetKind::FgImage)),
+            opt("face", Text),
+            opt("time", Number),
+            opt("wait", Boolean),
+        ],
         Allow,
         "show a character sprite",
     ),
     tag(
         "chara_mod",
-        &[req("name", Text), opt("storage", Asset(AssetKind::FgImage)), opt("face", Text), opt("time", Number)],
+        &[
+            req("name", Text),
+            opt("storage", Asset(AssetKind::FgImage)),
+            opt("face", Text),
+            opt("time", Number),
+        ],
         Allow,
         "change a shown character's sprite",
     ),
@@ -30,10 +45,19 @@ pub(super) const TAGS: &[TagSpec] = &[
         Allow,
         "hide a character sprite",
     ),
-    tag("chara_delete", &[req("name", Text)], Allow, "remove a character definition"),
+    tag(
+        "chara_delete",
+        &[req("name", Text)],
+        Allow,
+        "remove a character definition",
+    ),
     tag(
         "chara_face",
-        &[req("name", Text), req("face", Text), req("storage", Asset(AssetKind::FgImage))],
+        &[
+            req("name", Text),
+            req("face", Text),
+            req("storage", Asset(AssetKind::FgImage)),
+        ],
         Allow,
         "register a face variant for a character",
     ),
@@ -61,7 +85,12 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "chara_hide_all",
-        &[optd("page", Enum(&["fore", "back"]), "fore"), optd("layer", Text, "0"), optd("wait", Boolean, "true"), optd("time", Number, "1000")],
+        &[
+            optd("page", Enum(&["fore", "back"]), "fore"),
+            optd("layer", Text, "0"),
+            optd("wait", Boolean, "true"),
+            optd("time", Number, "1000"),
+        ],
         Allow,
         "hide every shown character sprite",
     ),
@@ -83,7 +112,13 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "chara_layer",
-        &[req("name", Text), req("part", Text), req("id", Text), opt("storage", Asset(AssetKind::FgImage)), opt("zindex", Number)],
+        &[
+            req("name", Text),
+            req("part", Text),
+            req("id", Text),
+            opt("storage", Asset(AssetKind::FgImage)),
+            opt("zindex", Number),
+        ],
         Allow,
         "define a swappable differential part for a character sprite",
     ),
@@ -95,7 +130,13 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "chara_part",
-        &[req("name", Text), optd("allow_storage", Boolean, "false"), opt("time", Number), optd("wait", Boolean, "true"), optd("force", Boolean, "false")],
+        &[
+            req("name", Text),
+            optd("allow_storage", Boolean, "false"),
+            opt("time", Number),
+            optd("wait", Boolean, "true"),
+            optd("force", Boolean, "false"),
+        ],
         Allow,
         "switch a character's differential parts (e.g. face, eyes)",
     ),

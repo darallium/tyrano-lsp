@@ -23,8 +23,10 @@ use tyrano_syntax::ast::{AstNode as _, InterpretOptions, KeepSpaceLevel, Line, T
 use tyrano_syntax::red::SyntaxNode;
 use tyrano_syntax::{ParseOptions, SyntaxKind, parse_with_options};
 
-const GRAMMAR: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../grammar/tyranoscript.grammar"));
+const GRAMMAR: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../grammar/tyranoscript.grammar"
+));
 
 // LRParser holds Rc-based grammar data (not Sync), so cache it per thread.
 thread_local! {
@@ -40,7 +42,9 @@ thread_local! {
 
 fn old_options(config: &ParserConfig) -> (ParseOptions, InterpretOptions) {
     (
-        ParseOptions { loose_endscript_termination: config.loose_endscript_termination },
+        ParseOptions {
+            loose_endscript_termination: config.loose_endscript_termination,
+        },
         InterpretOptions {
             keep_space: match config.keep_space_in_parameter_value {
                 OldKeep::RemoveAll => KeepSpaceLevel::RemoveAll,
@@ -114,15 +118,20 @@ fn new_as_old(source: &str, config: &ParserConfig) -> OldAst {
                 is_block: false,
             })),
             Line::BlockComment(b) => {
-                lines.push(Box::new(OldAst::Comment { content: "/*".into(), is_block: true }));
+                lines.push(Box::new(OldAst::Comment {
+                    content: "/*".into(),
+                    is_block: true,
+                }));
                 let closed = b
                     .syntax()
                     .descendants_with_tokens()
                     .filter_map(|e| e.into_token())
                     .any(|t| t.kind() == SyntaxKind::STAR_SLASH && !t.is_missing());
                 if closed {
-                    lines
-                        .push(Box::new(OldAst::Comment { content: "*/".into(), is_block: true }));
+                    lines.push(Box::new(OldAst::Comment {
+                        content: "*/".into(),
+                        is_block: true,
+                    }));
                 }
             }
             Line::AtTag(t) => lines.push(Box::new(conv_tag(t, true, &io))),
@@ -146,7 +155,10 @@ fn conv_tag(tag: &impl tyrano_syntax::ast::Tag, at: bool, io: &InterpretOptions)
         parameters: tag
             .params()
             .iter()
-            .map(|p| Parameter { name: p.name(), value: p.cooked_value(io) })
+            .map(|p| Parameter {
+                name: p.name(),
+                value: p.cooked_value(io),
+            })
             .collect(),
         is_at_notation: at,
     }
@@ -330,7 +342,10 @@ fn blocks_match() {
         check_default(src);
         check(
             src,
-            &ParserConfig { loose_endscript_termination: false, ..ParserConfig::default() },
+            &ParserConfig {
+                loose_endscript_termination: false,
+                ..ParserConfig::default()
+            },
         );
     }
 }

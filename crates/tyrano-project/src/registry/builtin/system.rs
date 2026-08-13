@@ -2,8 +2,13 @@
 //! clearing, plugins, HTML/edit widgets, key configuration, patches, and
 //! window control.
 
-use super::{ExtraParams::{Allow, Deny}, TagSpec, opt, optd, req, tag};
-use super::ValueKind::{Boolean, Color, Enum, Expression, Label, Number, Scenario, Text, VariableName};
+use super::ValueKind::{
+    Boolean, Color, Enum, Expression, Label, Number, Scenario, Text, VariableName,
+};
+use super::{
+    ExtraParams::{Allow, Deny},
+    TagSpec, opt, optd, req, tag,
+};
 
 pub(super) const TAGS: &[TagSpec] = &[
     // --- save / load / game state ---------------------------------------
@@ -15,40 +20,75 @@ pub(super) const TAGS: &[TagSpec] = &[
         Deny,
         "set the image used for save-data thumbnails",
     ),
-    tag("savesnap", &[req("title", Text)], Deny, "create a save snapshot"),
-
+    tag(
+        "savesnap",
+        &[req("title", Text)],
+        Deny,
+        "create a save snapshot",
+    ),
     // --- window / app control -------------------------------------------
-    tag("close", &[optd("ask", Boolean, "true")], Deny, "close the game window"),
+    tag(
+        "close",
+        &[optd("ask", Boolean, "true")],
+        Deny,
+        "close the game window",
+    ),
     tag("closeconfirm_on", &[], Deny, "enable the exit confirmation"),
-    tag("closeconfirm_off", &[], Deny, "disable the exit confirmation"),
+    tag(
+        "closeconfirm_off",
+        &[],
+        Deny,
+        "disable the exit confirmation",
+    ),
     tag("breakgame", &[], Deny, "delete the game suspend data"),
     tag(
         "sleepgame",
-        &[opt("storage", Scenario), opt("target", Label), optd("next", Boolean, "true")],
+        &[
+            opt("storage", Scenario),
+            opt("target", Label),
+            optd("next", Boolean, "true"),
+        ],
         Deny,
         "suspend the game until [awakegame]",
     ),
     tag(
         "awakegame",
-        &[optd("variable_over", Boolean, "true"), optd("sound_opt_over", Boolean, "true"), optd("bgm_over", Boolean, "true")],
+        &[
+            optd("variable_over", Boolean, "true"),
+            optd("sound_opt_over", Boolean, "true"),
+            optd("bgm_over", Boolean, "true"),
+        ],
         Deny,
         "resume a game suspended by [sleepgame]",
     ),
     tag("screen_full", &[], Deny, "toggle fullscreen"),
     tag("commit", &[], Deny, "commit form input"),
-
     // --- variables ------------------------------------------------------
-    tag("clearvar", &[opt("exp", Expression)], Deny, "clear a game variable (all when omitted)"),
+    tag(
+        "clearvar",
+        &[opt("exp", Expression)],
+        Deny,
+        "clear a game variable (all when omitted)",
+    ),
     tag("clearsysvar", &[], Deny, "clear all system variables"),
-    tag("clearfix", &[opt("name", Text)], Deny, "clear the fix layer"),
+    tag(
+        "clearfix",
+        &[opt("name", Text)],
+        Deny,
+        "clear the fix layer",
+    ),
     tag(
         "clearstack",
         &[opt("stack", Enum(&["call", "if", "macro", "anim"]))],
         Deny,
         "clear execution stacks",
     ),
-    tag("trace", &[opt("exp", Expression)], Deny, "print a value to the console"),
-
+    tag(
+        "trace",
+        &[opt("exp", Expression)],
+        Deny,
+        "print a value to the console",
+    ),
     // --- dialogs --------------------------------------------------------
     tag(
         "dialog",
@@ -69,32 +109,72 @@ pub(super) const TAGS: &[TagSpec] = &[
     tag(
         "dialog_config",
         &[
-            opt("okpos", Text), opt("btntype", Text), opt("btnwidth", Number),
-            opt("btnmargin", Text), opt("btnpadding", Text), opt("fontsize", Number),
-            opt("fontbold", Boolean), opt("fontface", Text), opt("fontcolor", Color),
-            opt("btnfontsize", Number), opt("btnfontbold", Boolean), opt("btnfontface", Text),
-            opt("btnfontcolor", Color), opt("boxradius", Number), opt("boxcolor", Color),
-            opt("boximg", Text), opt("boximgpos", Text), opt("boximgrepeat", Text),
-            opt("boximgsize", Text), opt("boxopacity", Number), opt("boxwidth", Number),
-            opt("boxheight", Number), opt("boxpadding", Text), opt("bgcolor", Color),
-            opt("bgimg", Text), opt("bgimgpos", Text), opt("bgimgrepeat", Text),
-            opt("bgimgsize", Text), opt("bgopacity", Number), opt("openeffect", Text),
-            opt("opentime", Number), opt("closeeffect", Text), opt("closetime", Number),
-            opt("gotitle", Text), opt("ingame", Text),
+            opt("okpos", Text),
+            opt("btntype", Text),
+            opt("btnwidth", Number),
+            opt("btnmargin", Text),
+            opt("btnpadding", Text),
+            opt("fontsize", Number),
+            opt("fontbold", Boolean),
+            opt("fontface", Text),
+            opt("fontcolor", Color),
+            opt("btnfontsize", Number),
+            opt("btnfontbold", Boolean),
+            opt("btnfontface", Text),
+            opt("btnfontcolor", Color),
+            opt("boxradius", Number),
+            opt("boxcolor", Color),
+            opt("boximg", Text),
+            opt("boximgpos", Text),
+            opt("boximgrepeat", Text),
+            opt("boximgsize", Text),
+            opt("boxopacity", Number),
+            opt("boxwidth", Number),
+            opt("boxheight", Number),
+            opt("boxpadding", Text),
+            opt("bgcolor", Color),
+            opt("bgimg", Text),
+            opt("bgimgpos", Text),
+            opt("bgimgrepeat", Text),
+            opt("bgimgsize", Text),
+            opt("bgopacity", Number),
+            opt("openeffect", Text),
+            opt("opentime", Number),
+            opt("closeeffect", Text),
+            opt("closetime", Number),
+            opt("gotitle", Text),
+            opt("ingame", Text),
         ],
         Allow,
         "configure the confirm-dialog design",
     ),
-    tag("dialog_config_filter", &[], Allow, "configure the confirm-dialog backdrop filter"),
+    tag(
+        "dialog_config_filter",
+        &[],
+        Allow,
+        "configure the confirm-dialog backdrop filter",
+    ),
     tag(
         "dialog_config_ok",
         &[
-            opt("text", Text), opt("type", Text), opt("width", Number), opt("margin", Text),
-            opt("padding", Text), opt("fontsize", Number), opt("fontbold", Boolean),
-            opt("fontface", Text), opt("fontcolor", Color), opt("img", Text),
-            opt("imgwidth", Number), opt("enterimg", Text), opt("activeimg", Text),
-            opt("clickimg", Text), opt("enterse", Text), opt("leavese", Text),
-            opt("clickse", Text), opt("btnimgtype", Text),
+            opt("text", Text),
+            opt("type", Text),
+            opt("width", Number),
+            opt("margin", Text),
+            opt("padding", Text),
+            opt("fontsize", Number),
+            opt("fontbold", Boolean),
+            opt("fontface", Text),
+            opt("fontcolor", Color),
+            opt("img", Text),
+            opt("imgwidth", Number),
+            opt("enterimg", Text),
+            opt("activeimg", Text),
+            opt("clickimg", Text),
+            opt("enterse", Text),
+            opt("leavese", Text),
+            opt("clickse", Text),
+            opt("btnimgtype", Text),
         ],
         Allow,
         "configure the confirm-dialog OK button",
@@ -102,19 +182,35 @@ pub(super) const TAGS: &[TagSpec] = &[
     tag(
         "dialog_config_ng",
         &[
-            opt("text", Text), opt("type", Text), opt("width", Number), opt("margin", Text),
-            opt("padding", Text), opt("fontsize", Number), opt("fontbold", Boolean),
-            opt("fontface", Text), opt("fontcolor", Color), opt("img", Text),
-            opt("imgwidth", Number), opt("enterimg", Text), opt("activeimg", Text),
-            opt("clickimg", Text), opt("enterse", Text), opt("leavese", Text),
-            opt("clickse", Text), opt("btnimgtype", Text),
+            opt("text", Text),
+            opt("type", Text),
+            opt("width", Number),
+            opt("margin", Text),
+            opt("padding", Text),
+            opt("fontsize", Number),
+            opt("fontbold", Boolean),
+            opt("fontface", Text),
+            opt("fontcolor", Color),
+            opt("img", Text),
+            opt("imgwidth", Number),
+            opt("enterimg", Text),
+            opt("activeimg", Text),
+            opt("clickimg", Text),
+            opt("enterse", Text),
+            opt("leavese", Text),
+            opt("clickse", Text),
+            opt("btnimgtype", Text),
         ],
         Allow,
         "configure the confirm-dialog cancel button",
     ),
-
     // --- menu / system screens ------------------------------------------
-    tag("showmenubutton", &[optd("keyfocus", Text, "false")], Deny, "show the menu button"),
+    tag(
+        "showmenubutton",
+        &[optd("keyfocus", Text, "false")],
+        Deny,
+        "show the menu button",
+    ),
     tag("hidemenubutton", &[], Deny, "hide the menu button"),
     tag("showmenu", &[], Deny, "show the menu screen"),
     tag("showsave", &[], Deny, "show the save screen"),
@@ -122,15 +218,21 @@ pub(super) const TAGS: &[TagSpec] = &[
     tag("showlog", &[], Deny, "show the backlog"),
     tag(
         "sysview",
-        &[req("type", Enum(&["save", "load", "backlog", "menu"])), req("storage", Text)],
+        &[
+            req("type", Enum(&["save", "load", "backlog", "menu"])),
+            req("storage", Text),
+        ],
         Deny,
         "override a system screen's HTML",
     ),
-
     // --- HTML / input / web ---------------------------------------------
     tag(
         "html",
-        &[opt("layer", Text), optd("top", Number, "0"), optd("left", Number, "0")],
+        &[
+            opt("layer", Text),
+            optd("top", Number, "0"),
+            optd("left", Number, "0"),
+        ],
         Allow,
         "add an HTML region to a layer",
     ),
@@ -155,8 +257,12 @@ pub(super) const TAGS: &[TagSpec] = &[
         Allow,
         "place a text input box",
     ),
-    tag("web", &[req("url", Text)], Deny, "open a web page or external URL"),
-
+    tag(
+        "web",
+        &[req("url", Text)],
+        Deny,
+        "open a web page or external URL",
+    ),
     // --- loading / plugins / patches ------------------------------------
     tag(
         "loadjs",
@@ -164,7 +270,12 @@ pub(super) const TAGS: &[TagSpec] = &[
         Deny,
         "load an external JavaScript file",
     ),
-    tag("loadcss", &[req("file", Text)], Deny, "load an external CSS file"),
+    tag(
+        "loadcss",
+        &[req("file", Text)],
+        Deny,
+        "load an external CSS file",
+    ),
     tag(
         "plugin",
         &[req("name", Text), optd("storage", Text, "init.ks")],
@@ -173,13 +284,22 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "preload",
-        &[req("storage", Text), optd("wait", Boolean, "false"), optd("single_use", Boolean, "true"), opt("name", Text)],
+        &[
+            req("storage", Text),
+            optd("wait", Boolean, "false"),
+            optd("single_use", Boolean, "true"),
+            opt("name", Text),
+        ],
         Deny,
         "preload asset files ahead of use",
     ),
     tag(
         "unload",
-        &[opt("storage", Text), opt("name", Text), optd("all_sound", Boolean, "false")],
+        &[
+            opt("storage", Text),
+            opt("name", Text),
+            optd("all_sound", Boolean, "false"),
+        ],
         Deny,
         "discard preloaded audio data",
     ),
@@ -204,14 +324,30 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag("start_keyconfig", &[], Deny, "enable key-config operation"),
     tag("stop_keyconfig", &[], Deny, "disable key-config operation"),
-
     // --- misc -----------------------------------------------------------
     tag(
         "body",
-        &[opt("bgimage", Text), opt("bgrepeat", Text), opt("bgcolor", Color), optd("bgcover", Boolean, "false"), opt("scWidth", Number), opt("scHeight", Number)],
+        &[
+            opt("bgimage", Text),
+            opt("bgrepeat", Text),
+            opt("bgcolor", Color),
+            optd("bgcover", Boolean, "false"),
+            opt("scWidth", Number),
+            opt("scHeight", Number),
+        ],
         Deny,
         "configure the area outside the game screen",
     ),
-    tag("title", &[req("name", Text)], Deny, "set the window / browser title"),
-    tag("lang_set", &[req("name", Text)], Deny, "switch the localization language"),
+    tag(
+        "title",
+        &[req("name", Text)],
+        Deny,
+        "set the window / browser title",
+    ),
+    tag(
+        "lang_set",
+        &[req("name", Text)],
+        Deny,
+        "switch the localization language",
+    ),
 ];

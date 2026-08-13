@@ -38,9 +38,16 @@ mod tests {
             .into_iter()
             .map(|p| p.as_str().to_string())
             .collect();
-        assert_eq!(cands, ["data/scenario/sub/ev.ks"], "explicit extension: no completion");
+        assert_eq!(
+            cands,
+            ["data/scenario/sub/ev.ks"],
+            "explicit extension: no completion"
+        );
 
-        assert!(candidate_paths(&settings, "../escape.ks").is_empty(), "bad names: no candidates");
+        assert!(
+            candidate_paths(&settings, "../escape.ks").is_empty(),
+            "bad names: no candidates"
+        );
     }
 
     #[test]
@@ -53,7 +60,11 @@ mod tests {
 
         let first = db.file(&path("data/scenario/first.ks")).unwrap();
         assert_eq!(resolver.resolve("first.ks"), Some(first));
-        assert_eq!(resolver.resolve("first"), Some(first), "extension completed");
+        assert_eq!(
+            resolver.resolve("first"),
+            Some(first),
+            "extension completed"
+        );
         assert_eq!(
             resolver.resolve("sub/ev"),
             db.file(&path("data/scenario/sub/ev.ks")),
@@ -80,7 +91,9 @@ mod tests {
 
     #[test]
     fn missing_storage_resolves_after_creation() {
-        let mut db = ProjectBuilder::new().file("data/scenario/first.ks", "*start\n").build();
+        let mut db = ProjectBuilder::new()
+            .file("data/scenario/first.ks", "*start\n")
+            .build();
         let name = StorageName::new(&db, "scene2.ks".to_string());
         assert_eq!(resolve_storage(&db, name), None);
 
@@ -114,13 +127,20 @@ mod tests {
         }
         let ev = db.file(&path("data/scenario/sub/ev.ks")).unwrap();
         let module = script_module(&db, ev).unwrap();
-        assert_eq!(module.storage.text(&db), "sub/ev.ks", "canonical storage keeps subdirs");
+        assert_eq!(
+            module.storage.text(&db),
+            "sub/ev.ks",
+            "canonical storage keeps subdirs"
+        );
     }
 
     #[test]
     fn unrooted_file_has_no_module() {
         let mut db = ProjectBuilder::new().build();
-        db.apply_file_change(&path("elsewhere/x.ks"), FileChange::Created("*x\n".to_string()));
+        db.apply_file_change(
+            &path("elsewhere/x.ks"),
+            FileChange::Created("*x\n".to_string()),
+        );
         let stray = db.file(&path("elsewhere/x.ks")).unwrap();
         assert_eq!(script_module(&db, stray), None);
     }

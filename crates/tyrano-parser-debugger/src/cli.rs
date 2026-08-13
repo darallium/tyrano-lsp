@@ -32,4 +32,3 @@ pub enum Commands {
         file: PathBuf,
     },
 }
-

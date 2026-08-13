@@ -33,13 +33,17 @@ pub struct ParseOptions {
 
 impl Default for ParseOptions {
     fn default() -> Self {
-        ParseOptions { loose_endscript_termination: true }
+        ParseOptions {
+            loose_endscript_termination: true,
+        }
     }
 }
 
 impl ParseOptions {
     fn lex_options(&self) -> LexOptions {
-        LexOptions { loose_endscript_termination: self.loose_endscript_termination }
+        LexOptions {
+            loose_endscript_termination: self.loose_endscript_termination,
+        }
     }
 }
 
@@ -149,7 +153,9 @@ pub(crate) fn parse_lexed_with_reuse(
     // than emitted while parsing: this keeps them deterministic under
     // incremental reuse (a spliced subtree yields exactly the same
     // diagnostics as a freshly parsed one).
-    diagnostics.extend(derive_tree_diagnostics(&SyntaxNode::new_root(green.clone())));
+    diagnostics.extend(derive_tree_diagnostics(&SyntaxNode::new_root(
+        green.clone(),
+    )));
     diagnostics.sort_by_key(|d| (d.primary.start(), d.primary.end()));
 
     Parse {
@@ -169,7 +175,10 @@ fn derive_tree_diagnostics(root: &SyntaxNode) -> Vec<Diagnostic> {
     for node in root.descendants() {
         match node.kind() {
             SyntaxKind::ERROR => {
-                out.push(Diagnostic::new(DiagCode::ParseUnexpectedToken, node.trimmed_range()));
+                out.push(Diagnostic::new(
+                    DiagCode::ParseUnexpectedToken,
+                    node.trimmed_range(),
+                ));
             }
             SyntaxKind::TAG_NAME => {
                 let missing = node
@@ -230,7 +239,11 @@ fn attach_trivia(source: &str, lexed: &LexOutput) -> Vec<SigTok> {
         let end = pos + raw.len.to_usize();
         pos = end;
         if raw.kind.is_trivia() {
-            pending.push(TriviaPiece { kind: raw.kind, start, end });
+            pending.push(TriviaPiece {
+                kind: raw.kind,
+                start,
+                end,
+            });
             continue;
         }
         let leading = if prev_was_newline || toks.is_empty() {
@@ -242,7 +255,13 @@ fn attach_trivia(source: &str, lexed: &LexOutput) -> Vec<SigTok> {
             toks.last_mut().expect("checked non-empty").trailing = run;
             Vec::new()
         };
-        toks.push(SigTok { kind: raw.kind, start, end, leading, trailing: Vec::new() });
+        toks.push(SigTok {
+            kind: raw.kind,
+            start,
+            end,
+            leading,
+            trailing: Vec::new(),
+        });
         prev_was_newline = raw.kind == SyntaxKind::NEWLINE;
     }
 
@@ -292,7 +311,9 @@ impl<'s> Parser<'s> {
     }
 
     fn nth_kind(&self, n: usize) -> SyntaxKind {
-        self.toks.get(self.pos + n).map_or(SyntaxKind::EOF, |t| t.kind)
+        self.toks
+            .get(self.pos + n)
+            .map_or(SyntaxKind::EOF, |t| t.kind)
     }
 
     fn text(&self) -> &str {
@@ -384,9 +405,13 @@ impl<'s> Parser<'s> {
     /// source. Identical text + identical entry state ⇒ identical parse,
     /// so this cannot change the resulting tree.
     fn try_splice(&mut self) -> bool {
-        let Some(reuse) = &self.reuse else { return false };
+        let Some(reuse) = &self.reuse else {
+            return false;
+        };
         let start = self.line_start_offset(self.pos);
-        let Some(node) = reuse.reusable_at(start, self.src) else { return false };
+        let Some(node) = reuse.reusable_at(start, self.src) else {
+            return false;
+        };
         let end = start + node.full_len().to_usize();
         self.builder.node(node);
         while !self.at_eof() && self.line_start_offset(self.pos) < end {
@@ -534,7 +559,9 @@ impl<'s> Parser<'s> {
     /// After an `@iscript`-style opener line: wraps it into a block node
     /// and parses the raw interior plus the closing tag line.
     fn maybe_wrap_block(&mut self, cp: Checkpoint, tag_name: &str) {
-        let Some(end) = end_tag_for(tag_name) else { return };
+        let Some(end) = end_tag_for(tag_name) else {
+            return;
+        };
         let kind = block_kind_for(end);
         self.builder.start_node_at(cp, kind);
         self.parse_raw_block_rest(end);
@@ -653,7 +680,10 @@ impl<'s> Parser<'s> {
             }
         }
         self.builder.finish_node();
-        assert!(self.depth < MAX_ERROR_DEPTH, "error recovery must make progress");
+        assert!(
+            self.depth < MAX_ERROR_DEPTH,
+            "error recovery must make progress"
+        );
         self.depth -= 1;
     }
 }
@@ -667,7 +697,11 @@ fn end_tag_for(open: &str) -> Option<&'static str> {
 }
 
 fn block_kind_for(end_tag: &str) -> SyntaxKind {
-    if end_tag == "endscript" { SyntaxKind::ISCRIPT_BLOCK } else { SyntaxKind::HTML_BLOCK }
+    if end_tag == "endscript" {
+        SyntaxKind::ISCRIPT_BLOCK
+    } else {
+        SyntaxKind::HTML_BLOCK
+    }
 }
 
 #[cfg(test)]
@@ -788,7 +822,10 @@ r_bracket) newline) eof)"
             dump(roundtrip("#akane:happy\n").green()),
             "(scenario (chara_line sharp (chara_name text) colon (chara_face text) newline) eof)"
         );
-        assert_eq!(dump(roundtrip("#\n").green()), "(scenario (chara_line sharp newline) eof)");
+        assert_eq!(
+            dump(roundtrip("#\n").green()),
+            "(scenario (chara_line sharp newline) eof)"
+        );
         assert_eq!(
             dump(roundtrip("#:face\n").green()),
             "(scenario (chara_line sharp colon (chara_face text) newline) eof)"
@@ -829,7 +866,11 @@ r_bracket) newline) eof)"
             "(scenario (text_line (inline_tag l_bracket (tag_name ident) \
 (param ident eq (param_value text)) r_bracket!)) eof)"
         );
-        assert!(p.diagnostics().iter().any(|d| matches!(d.code, DiagCode::ParseUnterminatedTag)));
+        assert!(
+            p.diagnostics()
+                .iter()
+                .any(|d| matches!(d.code, DiagCode::ParseUnterminatedTag))
+        );
     }
 
     #[test]
@@ -839,7 +880,11 @@ r_bracket) newline) eof)"
             dump(p.green()),
             "(scenario (text_line (inline_tag l_bracket (tag_name ident!) r_bracket)) eof)"
         );
-        assert!(p.diagnostics().iter().any(|d| matches!(d.code, DiagCode::ParseExpectedTagName)));
+        assert!(
+            p.diagnostics()
+                .iter()
+                .any(|d| matches!(d.code, DiagCode::ParseExpectedTagName))
+        );
     }
 
     #[test]
@@ -883,7 +928,9 @@ script_text newline \
             "(scenario (iscript_block (inline_tag l_bracket (tag_name ident) r_bracket) newline script_text) eof)"
         );
         assert!(
-            p.diagnostics().iter().any(|d| matches!(d.code, DiagCode::LexUnterminatedIscript))
+            p.diagnostics()
+                .iter()
+                .any(|d| matches!(d.code, DiagCode::LexUnterminatedIscript))
         );
     }
 
@@ -921,7 +968,10 @@ script_text newline script_text newline \
     #[test]
     fn underscore_line() {
         let p = roundtrip("_  spaced\n");
-        assert_eq!(dump(p.green()), "(scenario (text_line underscore text newline) eof)");
+        assert_eq!(
+            dump(p.green()),
+            "(scenario (text_line underscore text newline) eof)"
+        );
     }
 
     #[test]
@@ -952,9 +1002,31 @@ script_text newline script_text newline \
     #[test]
     fn no_panic_and_roundtrip_on_odd_inputs() {
         for src in [
-            "\\", "[", "]", "[]", "[ ]", "@", "@ ", "*", "#\n", "_", ";", "/*", "*/x",
-            "[a=b=c]", "[a \"q]", "\u{feff}", "\r", "a\rb", "@iscript", "[iscript]",
-            "[html]x[endhtml]", "*|", "#:", "[a t=\"unclosed", "@a t=\"unclosed\n次",
+            "\\",
+            "[",
+            "]",
+            "[]",
+            "[ ]",
+            "@",
+            "@ ",
+            "*",
+            "#\n",
+            "_",
+            ";",
+            "/*",
+            "*/x",
+            "[a=b=c]",
+            "[a \"q]",
+            "\u{feff}",
+            "\r",
+            "a\rb",
+            "@iscript",
+            "[iscript]",
+            "[html]x[endhtml]",
+            "*|",
+            "#:",
+            "[a t=\"unclosed",
+            "@a t=\"unclosed\n次",
         ] {
             roundtrip(src);
         }

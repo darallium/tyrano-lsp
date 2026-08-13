@@ -64,7 +64,12 @@ impl SyntaxNode {
         }
     }
 
-    fn new_child(parent: SyntaxNode, green: GreenNode, offset: TextSize, index: usize) -> SyntaxNode {
+    fn new_child(
+        parent: SyntaxNode,
+        green: GreenNode,
+        offset: TextSize,
+        index: usize,
+    ) -> SyntaxNode {
         SyntaxNode {
             data: Arc::new(NodeData {
                 parent: Some(parent),
@@ -122,8 +127,7 @@ impl SyntaxNode {
 
     /// The child nodes, in order (tokens skipped).
     pub fn children(&self) -> impl Iterator<Item = SyntaxNode> + '_ {
-        self.children_with_tokens()
-            .filter_map(|e| e.into_node())
+        self.children_with_tokens().filter_map(|e| e.into_node())
     }
 
     /// The children and tokens, in order, each with its absolute offset.
@@ -524,7 +528,13 @@ impl Hash for SyntaxToken {
 
 impl std::fmt::Debug for SyntaxToken {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}@{:?} {:?}", self.kind(), self.text_range(), self.text())
+        write!(
+            f,
+            "{}@{:?} {:?}",
+            self.kind(),
+            self.text_range(),
+            self.text()
+        )
     }
 }
 
@@ -805,12 +815,7 @@ mod tests {
     #[test]
     fn parent_and_ancestors() {
         let root = sample();
-        let label_name = root
-            .first_child()
-            .unwrap()
-            .children()
-            .next()
-            .unwrap();
+        let label_name = root.first_child().unwrap().children().next().unwrap();
         assert_eq!(label_name.kind(), K::LABEL_NAME);
         let kinds: Vec<_> = label_name.ancestors().map(|n| n.kind()).collect();
         assert_eq!(kinds, vec![K::LABEL_NAME, K::LABEL_LINE, K::SCENARIO]);
@@ -833,14 +838,8 @@ mod tests {
 
         // sibling-or-token navigation across the LABEL_NAME node.
         let name = label.children().next().unwrap();
-        assert_eq!(
-            name.prev_sibling_or_token().unwrap().kind(),
-            K::STAR
-        );
-        assert_eq!(
-            name.next_sibling_or_token().unwrap().kind(),
-            K::NEWLINE
-        );
+        assert_eq!(name.prev_sibling_or_token().unwrap().kind(), K::STAR);
+        assert_eq!(name.next_sibling_or_token().unwrap().kind(), K::NEWLINE);
     }
 
     #[test]
@@ -849,12 +848,7 @@ mod tests {
         let kinds: Vec<_> = root.descendants().map(|n| n.kind()).collect();
         assert_eq!(
             kinds,
-            vec![
-                K::SCENARIO,
-                K::LABEL_LINE,
-                K::LABEL_NAME,
-                K::TEXT_LINE,
-            ]
+            vec![K::SCENARIO, K::LABEL_LINE, K::LABEL_NAME, K::TEXT_LINE,]
         );
     }
 
@@ -916,12 +910,7 @@ mod tests {
     fn token_ranges_and_trivia() {
         let root = sample();
         // The "hi" token with leading "  " trivia.
-        let hi = root
-            .children()
-            .nth(1)
-            .unwrap()
-            .first_token()
-            .unwrap();
+        let hi = root.children().nth(1).unwrap().first_token().unwrap();
         assert_eq!(hi.text(), "hi");
         assert_eq!(hi.full_range(), tr(7, 11)); // "  hi"
         assert_eq!(hi.text_range(), tr(9, 11)); // "hi"

@@ -50,14 +50,17 @@ pub(crate) mod testutil {
     }
 
     pub fn file(db: &ProjectDatabase, path: &str) -> File {
-        db.file(&ProjectPath::new(path).unwrap()).expect("fixture file exists")
+        db.file(&ProjectPath::new(path).unwrap())
+            .expect("fixture file exists")
     }
 
     /// Byte offset of the first occurrence of `needle` in `file`'s text,
     /// plus `add` bytes.
     pub fn offset(db: &ProjectDatabase, file: File, needle: &str, add: u32) -> TextSize {
         let text = file.source(db).text(db);
-        let at = text.find(needle).unwrap_or_else(|| panic!("needle {needle:?} in {text:?}"));
+        let at = text
+            .find(needle)
+            .unwrap_or_else(|| panic!("needle {needle:?} in {text:?}"));
         TextSize::new(at as u32 + add)
     }
 }

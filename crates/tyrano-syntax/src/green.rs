@@ -705,15 +705,10 @@ mod tests {
         let star = tok(K::STAR, "*");
         let name = GreenNode::new(K::LABEL_NAME, vec![tok(K::TEXT, "start")]);
         let nl = tok(K::NEWLINE, "\n");
-        let label = GreenNode::new(
-            K::LABEL_LINE,
-            vec![star, GreenElement::Node(name), nl],
-        );
+        let label = GreenNode::new(K::LABEL_LINE, vec![star, GreenElement::Node(name), nl]);
 
-        let text_tok =
-            GreenToken::new(K::TEXT, "hi", vec![ws("  ")], Vec::new());
-        let text_line =
-            GreenNode::new(K::TEXT_LINE, vec![GreenElement::Token(text_tok)]);
+        let text_tok = GreenToken::new(K::TEXT, "hi", vec![ws("  ")], Vec::new());
+        let text_line = GreenNode::new(K::TEXT_LINE, vec![GreenElement::Token(text_tok)]);
 
         GreenNode::new(
             K::SCENARIO,
@@ -896,7 +891,10 @@ mod tests {
             GreenElement::Node(n) => n,
             _ => panic!(),
         };
-        assert!(GreenNode::ptr_eq(&original, spliced), "subtree must be reused");
+        assert!(
+            GreenNode::ptr_eq(&original, spliced),
+            "subtree must be reused"
+        );
     }
 
     #[test]
@@ -929,7 +927,10 @@ mod tests {
             GreenElement::Token(t) => t.clone(),
             _ => panic!(),
         };
-        assert!(GreenToken::ptr_eq(&t0, &t1), "trivia-less tokens should intern");
+        assert!(
+            GreenToken::ptr_eq(&t0, &t1),
+            "trivia-less tokens should intern"
+        );
     }
 
     #[test]

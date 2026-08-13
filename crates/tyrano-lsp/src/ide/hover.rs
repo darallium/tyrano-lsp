@@ -52,14 +52,20 @@ pub fn hover(db: &dyn ProjectDb, file: File, offset: TextSize) -> Option<HoverRe
             };
             Some(HoverResult { markdown, range })
         }
-        CursorTarget::Tag { name, range } => {
-            Some(HoverResult { markdown: describe_tag(db, &model, &name)?, range })
-        }
+        CursorTarget::Tag { name, range } => Some(HoverResult {
+            markdown: describe_tag(db, &model, &name)?,
+            range,
+        }),
         CursorTarget::ParamName { tag, name, range } => {
             let markdown = describe_param(&tag, &name)?;
             Some(HoverResult { markdown, range })
         }
-        CursorTarget::ParamValue { tag, param, value, range } => {
+        CursorTarget::ParamValue {
+            tag,
+            param,
+            value,
+            range,
+        } => {
             let markdown = describe_value(db, &model, &tag, &param, &value)?;
             Some(HoverResult { markdown, range })
         }
@@ -92,9 +98,11 @@ fn describe_jump(db: &dyn ProjectDb, name: &str, resolution: &ProjectResolution)
 fn describe_tag(db: &dyn ProjectDb, model: &SemanticModel<'_>, name: &str) -> Option<String> {
     match model.resolve_tag(name) {
         TagResolution::Builtin(spec) => Some(builtin_doc(spec)),
-        TagResolution::Macro(def) => {
-            Some(format!("**[{}]** — macro defined in `{}`", def.name, def.file.path(db)))
-        }
+        TagResolution::Macro(def) => Some(format!(
+            "**[{}]** — macro defined in `{}`",
+            def.name,
+            def.file.path(db)
+        )),
         TagResolution::Plugin => Some(format!(
             "**[{name}]** — custom tag registered by reachable plugin JavaScript"
         )),
@@ -108,7 +116,12 @@ fn builtin_doc(spec: &TagSpec) -> String {
         out.push_str("\n\n**Parameters**\n");
         for p in spec.params {
             let requirement = if p.required { "required" } else { "optional" };
-            let _ = write!(out, "\n- `{}` — {}, {requirement}", p.name, kind_name(p.kind));
+            let _ = write!(
+                out,
+                "\n- `{}` — {}, {requirement}",
+                p.name,
+                kind_name(p.kind)
+            );
             if let Some(default) = p.default {
                 let _ = write!(out, " (default `{default}`)");
             }
@@ -125,9 +138,15 @@ fn describe_param(tag: &str, name: &str) -> Option<String> {
     }
     let spec = builtin_registry().get(tag)?;
     let param = spec.param(name)?;
-    let requirement = if param.required { "required" } else { "optional" };
-    let mut out =
-        format!("`{name}` — parameter of **[{tag}]**: {}, {requirement}", kind_name(param.kind));
+    let requirement = if param.required {
+        "required"
+    } else {
+        "optional"
+    };
+    let mut out = format!(
+        "`{name}` — parameter of **[{tag}]**: {}, {requirement}",
+        kind_name(param.kind)
+    );
     if let Some(default) = param.default {
         let _ = write!(out, ", default `{default}`");
     }
@@ -204,7 +223,11 @@ mod tests {
         let db = two_files();
         let f = file(&db, "data/scenario/main.ks");
         let hover = hover(&db, f, offset(&db, f, "[jump", 2)).expect("hover on jump");
-        assert!(hover.markdown.contains("**[jump]** (builtin)"), "{}", hover.markdown);
+        assert!(
+            hover.markdown.contains("**[jump]** (builtin)"),
+            "{}",
+            hover.markdown
+        );
         assert!(hover.markdown.contains("`storage`"), "{}", hover.markdown);
         assert!(hover.markdown.contains("`target`"), "{}", hover.markdown);
     }
@@ -215,7 +238,9 @@ mod tests {
         let f = file(&db, "data/scenario/main.ks");
         let hover = hover(&db, f, offset(&db, f, "*top", 2)).expect("hover on target");
         assert!(
-            hover.markdown.contains("label in `data/scenario/scene2.ks`"),
+            hover
+                .markdown
+                .contains("label in `data/scenario/scene2.ks`"),
             "{}",
             hover.markdown
         );
@@ -227,7 +252,9 @@ mod tests {
         let f = file(&db, "data/scenario/main.ks");
         let hover = hover(&db, f, offset(&db, f, "[greet]", 3)).expect("hover on call");
         assert!(
-            hover.markdown.contains("macro defined in `data/scenario/main.ks`"),
+            hover
+                .markdown
+                .contains("macro defined in `data/scenario/main.ks`"),
             "{}",
             hover.markdown
         );
@@ -242,7 +269,9 @@ mod tests {
         let f = file(&db, "data/scenario/a.ks");
         let hover = hover(&db, f, offset(&db, f, "[only_b]", 3)).expect("cross-file macro");
         assert!(
-            hover.markdown.contains("macro defined in `data/scenario/b.ks`"),
+            hover
+                .markdown
+                .contains("macro defined in `data/scenario/b.ks`"),
             "{}",
             hover.markdown
         );
@@ -254,7 +283,9 @@ mod tests {
         let f = file(&db, "data/scenario/main.ks");
         let hover = hover(&db, f, offset(&db, f, "scene2.ks target", 4)).expect("storage value");
         assert!(
-            hover.markdown.contains("scenario file `data/scenario/scene2.ks`"),
+            hover
+                .markdown
+                .contains("scenario file `data/scenario/scene2.ks`"),
             "{}",
             hover.markdown
         );
@@ -273,7 +304,11 @@ mod tests {
         let db = two_files();
         let f = file(&db, "data/scenario/main.ks");
         let hover = hover(&db, f, offset(&db, f, "*start", 2)).expect("label def");
-        assert!(hover.markdown.contains("label in `data/scenario/main.ks`"), "{}", hover.markdown);
+        assert!(
+            hover.markdown.contains("label in `data/scenario/main.ks`"),
+            "{}",
+            hover.markdown
+        );
     }
 
     #[test]

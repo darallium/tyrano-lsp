@@ -230,7 +230,13 @@ fn lower_line(line: &Line, opts: &InterpretOptions, model: &mut ScenarioModel) {
             let (ptr, range) = ptr_range(l.syntax());
             let name = l.name().unwrap_or_default();
             let name_range = l.name_token().map_or(range, |t| t.text_range());
-            let item = LabelItem { name: name.clone(), value: l.value(opts), name_range, ptr, range };
+            let item = LabelItem {
+                name: name.clone(),
+                value: l.value(opts),
+                name_range,
+                ptr,
+                range,
+            };
             if let Some(&first) = model.labels.get(&name) {
                 let first_range = match &model.items[first] {
                     Item::Label(f) => f.name_range,
@@ -295,26 +301,51 @@ fn lower_line(line: &Line, opts: &InterpretOptions, model: &mut ScenarioModel) {
         }
         Line::IScript(s) => {
             let (ptr, range) = ptr_range(s.syntax());
-            model.items.push(Item::Script(ScriptItem { code: s.code(), ptr, range }));
+            model.items.push(Item::Script(ScriptItem {
+                code: s.code(),
+                ptr,
+                range,
+            }));
         }
         Line::Html(h) => {
             let (ptr, range) = ptr_range(h.syntax());
-            model.items.push(Item::Html(HtmlItem { content: h.code(), ptr, range }));
+            model.items.push(Item::Html(HtmlItem {
+                content: h.code(),
+                ptr,
+                range,
+            }));
         }
         // Error lines carry no semantics; parse diagnostics cover them.
         Line::Error(_) => {}
     }
 }
 
-fn lower_tag(tag: &impl ast::Tag, at_notation: bool, opts: &InterpretOptions, model: &mut ScenarioModel) {
+fn lower_tag(
+    tag: &impl ast::Tag,
+    at_notation: bool,
+    opts: &InterpretOptions,
+    model: &mut ScenarioModel,
+) {
     let (ptr, range) = ptr_range(tag.syntax());
-    let params: Vec<(String, Option<String>)> =
-        tag.params().iter().map(|p| (p.name(), p.cooked_value(opts))).collect();
-    let item = TagItem { name: tag.name(), params, at_notation, ptr, range };
+    let params: Vec<(String, Option<String>)> = tag
+        .params()
+        .iter()
+        .map(|p| (p.name(), p.cooked_value(opts)))
+        .collect();
+    let item = TagItem {
+        name: tag.name(),
+        params,
+        at_notation,
+        ptr,
+        range,
+    };
     if item.name == "macro"
         && let Some(Some(name)) = item.param("name")
     {
-        model.macros.push(MacroDef { name: name.clone(), range });
+        model.macros.push(MacroDef {
+            name: name.clone(),
+            range,
+        });
     }
     model.items.push(Item::Tag(item));
 }
@@ -328,8 +359,12 @@ fn resolve_jumps(model: &mut ScenarioModel) {
         if !JUMP_TAGS.contains(&tag.name.as_str()) {
             continue;
         }
-        let Some(Some(target)) = tag.param("target") else { continue };
-        let Some(label_name) = target.strip_prefix('*') else { continue };
+        let Some(Some(target)) = tag.param("target") else {
+            continue;
+        };
+        let Some(label_name) = target.strip_prefix('*') else {
+            continue;
+        };
         if let Some(Some(storage)) = tag.param("storage")
             && !storage.is_empty()
         {
@@ -344,7 +379,9 @@ fn resolve_jumps(model: &mut ScenarioModel) {
         );
     }
     model.diagnostics.extend(diags);
-    model.diagnostics.sort_by_key(|d| (d.primary.start(), d.primary.end()));
+    model
+        .diagnostics
+        .sort_by_key(|d| (d.primary.start(), d.primary.end()));
 }
 
 /// Best-effort range of the `target` parameter's value token; falls back
@@ -396,7 +433,9 @@ var a = 1;\n\
         assert_eq!(
             kinds,
             // text line lowers to Text + its inline [l] tag
-            ["label", "chara", "text", "tag", "tag", "comment", "script", "tag", "tag", "label"]
+            [
+                "label", "chara", "text", "tag", "tag", "comment", "script", "tag", "tag", "label"
+            ]
         );
         assert!(m.diagnostics().is_empty(), "{:?}", m.diagnostics());
 
@@ -426,12 +465,24 @@ var a = 1;\n\
     #[test]
     fn jump_resolution() {
         // Resolves fine.
-        assert!(model("*start\n[jump target=*start]\n").diagnostics().is_empty());
+        assert!(
+            model("*start\n[jump target=*start]\n")
+                .diagnostics()
+                .is_empty()
+        );
         // Unknown label.
         let m = model("[jump target=*nowhere]\n");
-        assert!(m.diagnostics().iter().any(|d| matches!(d.code, DiagCode::SemUnknownLabel)));
+        assert!(
+            m.diagnostics()
+                .iter()
+                .any(|d| matches!(d.code, DiagCode::SemUnknownLabel))
+        );
         // Cross-file jump: not our business.
-        assert!(model("[jump storage=other.ks target=*foo]\n").diagnostics().is_empty());
+        assert!(
+            model("[jump storage=other.ks target=*foo]\n")
+                .diagnostics()
+                .is_empty()
+        );
         // @call is covered; plain value (no `*`) is not a label target.
         let m = model("@call target=*missing\n");
         assert_eq!(m.diagnostics().len(), 1);
@@ -455,7 +506,10 @@ var a = 1;\n\
         assert_eq!(m.label("a").unwrap().value.as_deref(), Some("b"));
         let loose = lower(
             &parse("*a|b|c\n"),
-            &InterpretOptions { label_value_first_segment_only: false, ..Default::default() },
+            &InterpretOptions {
+                label_value_first_segment_only: false,
+                ..Default::default()
+            },
         );
         assert_eq!(loose.label("a").unwrap().value.as_deref(), Some("b|c"));
     }
@@ -475,8 +529,7 @@ var a = 1;\n\
         };
         assert_eq!(c.name.as_deref(), Some("akane"));
         assert_eq!(c.face.as_deref(), Some("happy"));
-        let Some(Item::Script(s)) = m.items().iter().find(|i| matches!(i, Item::Script(_)))
-        else {
+        let Some(Item::Script(s)) = m.items().iter().find(|i| matches!(i, Item::Script(_))) else {
             panic!("script item expected");
         };
         assert_eq!(s.code, "var a = 1;");

@@ -316,18 +316,10 @@ pub fn render(d: &Diagnostic, lang: Lang) -> String {
         (DiagCode::LexUnterminatedBlockComment, Lang::Ja) => {
             "ブロックコメントが閉じられていません。`*/` が必要です".to_owned()
         }
-        (DiagCode::LexStrayBackslashAtEol, Lang::En) => {
-            "stray `\\` at end of line".to_owned()
-        }
-        (DiagCode::LexStrayBackslashAtEol, Lang::Ja) => {
-            "行末に不要な `\\` があります".to_owned()
-        }
-        (DiagCode::LexInvalidBytes, Lang::En) => {
-            "invalid character(s) in this context".to_owned()
-        }
-        (DiagCode::LexInvalidBytes, Lang::Ja) => {
-            "この文脈では無効な文字です".to_owned()
-        }
+        (DiagCode::LexStrayBackslashAtEol, Lang::En) => "stray `\\` at end of line".to_owned(),
+        (DiagCode::LexStrayBackslashAtEol, Lang::Ja) => "行末に不要な `\\` があります".to_owned(),
+        (DiagCode::LexInvalidBytes, Lang::En) => "invalid character(s) in this context".to_owned(),
+        (DiagCode::LexInvalidBytes, Lang::Ja) => "この文脈では無効な文字です".to_owned(),
 
         // -- parse -----------------------------------------------------
         (DiagCode::ParseExpectedToken, Lang::En) => {
@@ -363,15 +355,11 @@ pub fn render(d: &Diagnostic, lang: Lang) -> String {
         (DiagCode::ExprUnbalancedParen, Lang::En) => {
             "unbalanced parentheses in expression".to_owned()
         }
-        (DiagCode::ExprUnbalancedParen, Lang::Ja) => {
-            "式の括弧の対応が取れていません".to_owned()
-        }
+        (DiagCode::ExprUnbalancedParen, Lang::Ja) => "式の括弧の対応が取れていません".to_owned(),
         (DiagCode::ExprTrailingInput, Lang::En) => {
             "unexpected trailing input after expression".to_owned()
         }
-        (DiagCode::ExprTrailingInput, Lang::Ja) => {
-            "式の後ろに余分な入力があります".to_owned()
-        }
+        (DiagCode::ExprTrailingInput, Lang::Ja) => "式の後ろに余分な入力があります".to_owned(),
 
         // -- compat ----------------------------------------------------
         (DiagCode::CompatUndefinedValue, Lang::En) => {
@@ -504,7 +492,10 @@ mod tests {
             DiagCode::CompatUndefinedValue.as_str(),
             "W_COMPAT_UNDEFINED_VALUE"
         );
-        assert_eq!(DiagCode::SemDuplicateLabel.as_str(), "E_SEM_DUPLICATE_LABEL");
+        assert_eq!(
+            DiagCode::SemDuplicateLabel.as_str(),
+            "E_SEM_DUPLICATE_LABEL"
+        );
     }
 
     #[test]
@@ -552,7 +543,10 @@ mod tests {
     #[test]
     fn render_unterminated_tag_both_langs() {
         let d = Diagnostic::new(DiagCode::ParseUnterminatedTag, tr(0, 1));
-        assert_eq!(render(&d, Lang::En), "this tag is never closed; expected `]`");
+        assert_eq!(
+            render(&d, Lang::En),
+            "this tag is never closed; expected `]`"
+        );
         assert_eq!(
             render(&d, Lang::Ja),
             "このタグが閉じられていません。`]` が必要です"

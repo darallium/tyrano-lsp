@@ -49,7 +49,8 @@ fn corpus_matches_goldens() {
 
     for ks_path in entries {
         let db = tyrano_db::RootDatabase::default();
-        let file = tyrano_db::SourceFile::with_defaults(&db, std::fs::read_to_string(&ks_path).unwrap());
+        let file =
+            tyrano_db::SourceFile::with_defaults(&db, std::fs::read_to_string(&ks_path).unwrap());
         let idx = tyrano_parser_core::semantic_index(&db, file);
         check_golden(&ks_path.with_extension("sem"), &idx.debug_dump());
     }

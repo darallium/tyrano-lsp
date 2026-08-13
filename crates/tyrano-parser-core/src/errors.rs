@@ -125,14 +125,28 @@ mod tests {
 
     fn all_kinds() -> Vec<SemanticErrorKind> {
         vec![
-            SemanticErrorKind::DuplicateLabel { name: "start".to_owned(), first: tr(0, 5) },
-            SemanticErrorKind::UnknownLabelTarget { name: "gone".to_owned() },
+            SemanticErrorKind::DuplicateLabel {
+                name: "start".to_owned(),
+                first: tr(0, 5),
+            },
+            SemanticErrorKind::UnknownLabelTarget {
+                name: "gone".to_owned(),
+            },
             SemanticErrorKind::MacroMissingName,
-            SemanticErrorKind::UnclosedMacro { name: "greet".to_owned() },
+            SemanticErrorKind::UnclosedMacro {
+                name: "greet".to_owned(),
+            },
             SemanticErrorKind::StrayEndMacro,
-            SemanticErrorKind::NestedMacro { outer: "outer".to_owned() },
-            SemanticErrorKind::DuplicateMacro { name: "greet".to_owned(), first: tr(0, 5) },
-            SemanticErrorKind::DuplicateParam { name: "storage".to_owned() },
+            SemanticErrorKind::NestedMacro {
+                outer: "outer".to_owned(),
+            },
+            SemanticErrorKind::DuplicateMacro {
+                name: "greet".to_owned(),
+                first: tr(0, 5),
+            },
+            SemanticErrorKind::DuplicateParam {
+                name: "storage".to_owned(),
+            },
         ]
     }
 
@@ -148,8 +162,10 @@ mod tests {
             "sem-duplicate-macro",
             "sem-duplicate-param",
         ];
-        let errors: Vec<SemanticError> =
-            all_kinds().into_iter().map(|k| SemanticError::new(k, tr(10, 20))).collect();
+        let errors: Vec<SemanticError> = all_kinds()
+            .into_iter()
+            .map(|k| SemanticError::new(k, tr(10, 20)))
+            .collect();
         let codes: Vec<&str> = errors.iter().map(SemanticError::code).collect();
         assert_eq!(codes, expected);
     }
@@ -159,12 +175,18 @@ mod tests {
         let err = |kind| SemanticError::new(kind, tr(10, 20));
 
         assert_eq!(
-            err(SemanticErrorKind::DuplicateLabel { name: "start".to_owned(), first: tr(0, 5) })
-                .message(),
+            err(SemanticErrorKind::DuplicateLabel {
+                name: "start".to_owned(),
+                first: tr(0, 5)
+            })
+            .message(),
             "duplicate label `start` (first defined earlier)"
         );
         assert_eq!(
-            err(SemanticErrorKind::UnknownLabelTarget { name: "gone".to_owned() }).message(),
+            err(SemanticErrorKind::UnknownLabelTarget {
+                name: "gone".to_owned()
+            })
+            .message(),
             "unknown label `gone` in this file"
         );
         assert_eq!(
@@ -172,7 +194,10 @@ mod tests {
             "macro is missing a name= parameter"
         );
         assert_eq!(
-            err(SemanticErrorKind::UnclosedMacro { name: "greet".to_owned() }).message(),
+            err(SemanticErrorKind::UnclosedMacro {
+                name: "greet".to_owned()
+            })
+            .message(),
             "macro `greet` is never closed with [endmacro]"
         );
         assert_eq!(
@@ -180,16 +205,25 @@ mod tests {
             "[endmacro] with no matching [macro]"
         );
         assert_eq!(
-            err(SemanticErrorKind::NestedMacro { outer: "outer".to_owned() }).message(),
+            err(SemanticErrorKind::NestedMacro {
+                outer: "outer".to_owned()
+            })
+            .message(),
             "macro nested inside macro `outer` (macros do not nest)"
         );
         assert_eq!(
-            err(SemanticErrorKind::DuplicateMacro { name: "greet".to_owned(), first: tr(0, 5) })
-                .message(),
+            err(SemanticErrorKind::DuplicateMacro {
+                name: "greet".to_owned(),
+                first: tr(0, 5)
+            })
+            .message(),
             "duplicate macro `greet` (first defined earlier)"
         );
         assert_eq!(
-            err(SemanticErrorKind::DuplicateParam { name: "storage".to_owned() }).message(),
+            err(SemanticErrorKind::DuplicateParam {
+                name: "storage".to_owned()
+            })
+            .message(),
             "duplicate parameter `storage` on this tag (the last value wins)"
         );
     }
@@ -209,7 +243,9 @@ mod tests {
     #[test]
     fn errors_are_comparable() {
         let a = SemanticError::new(
-            SemanticErrorKind::UnknownLabelTarget { name: "gone".to_owned() },
+            SemanticErrorKind::UnknownLabelTarget {
+                name: "gone".to_owned(),
+            },
             tr(10, 20),
         );
         let b = a.clone();
@@ -220,7 +256,9 @@ mod tests {
 
         // Same kind, different range: not equal.
         let d = SemanticError::new(
-            SemanticErrorKind::UnknownLabelTarget { name: "gone".to_owned() },
+            SemanticErrorKind::UnknownLabelTarget {
+                name: "gone".to_owned(),
+            },
             tr(0, 1),
         );
         assert_ne!(a, d);

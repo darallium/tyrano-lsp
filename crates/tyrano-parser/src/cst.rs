@@ -108,13 +108,28 @@ impl CstNode {
     fn fmt_indent(&self, f: &mut fmt::Formatter<'_>, indent: usize) -> fmt::Result {
         let pad = "  ".repeat(indent);
         match self {
-            CstNode::Terminal { symbol_id, lexeme, span } => {
-                writeln!(f, "{}Terminal(id={}, lexeme={:?}, span={}..{})", 
-                    pad, symbol_id.0, lexeme, span.start, span.end)
+            CstNode::Terminal {
+                symbol_id,
+                lexeme,
+                span,
+            } => {
+                writeln!(
+                    f,
+                    "{}Terminal(id={}, lexeme={:?}, span={}..{})",
+                    pad, symbol_id.0, lexeme, span.start, span.end
+                )
             }
-            CstNode::NonTerminal { production_id, symbol_id, children, span } => {
-                writeln!(f, "{}NonTerminal(prod={}, sym={}, span={}..{})", 
-                    pad, production_id.0, symbol_id.0, span.start, span.end)?;
+            CstNode::NonTerminal {
+                production_id,
+                symbol_id,
+                children,
+                span,
+            } => {
+                writeln!(
+                    f,
+                    "{}NonTerminal(prod={}, sym={}, span={}..{})",
+                    pad, production_id.0, symbol_id.0, span.start, span.end
+                )?;
                 for child in children {
                     child.fmt_indent(f, indent + 1)?;
                 }

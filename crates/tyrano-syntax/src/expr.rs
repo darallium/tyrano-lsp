@@ -70,36 +70,128 @@ struct InfixOp {
 /// [`POSTFIX_BP`].
 const INFIX_OPS: &[InfixOp] = &[
     // COMMA — sequencing, left-assoc.
-    InfixOp { kind: SyntaxKind::COMMA, bp_left: 1, bp_right: 2 },
+    InfixOp {
+        kind: SyntaxKind::COMMA,
+        bp_left: 1,
+        bp_right: 2,
+    },
     // Assignment — right-assoc.
-    InfixOp { kind: SyntaxKind::EQ, bp_left: 4, bp_right: 3 },
-    InfixOp { kind: SyntaxKind::PLUS_EQ, bp_left: 4, bp_right: 3 },
-    InfixOp { kind: SyntaxKind::MINUS_EQ, bp_left: 4, bp_right: 3 },
-    InfixOp { kind: SyntaxKind::STAR_EQ, bp_left: 4, bp_right: 3 },
-    InfixOp { kind: SyntaxKind::SLASH_EQ, bp_left: 4, bp_right: 3 },
-    InfixOp { kind: SyntaxKind::PERCENT_EQ, bp_left: 4, bp_right: 3 },
+    InfixOp {
+        kind: SyntaxKind::EQ,
+        bp_left: 4,
+        bp_right: 3,
+    },
+    InfixOp {
+        kind: SyntaxKind::PLUS_EQ,
+        bp_left: 4,
+        bp_right: 3,
+    },
+    InfixOp {
+        kind: SyntaxKind::MINUS_EQ,
+        bp_left: 4,
+        bp_right: 3,
+    },
+    InfixOp {
+        kind: SyntaxKind::STAR_EQ,
+        bp_left: 4,
+        bp_right: 3,
+    },
+    InfixOp {
+        kind: SyntaxKind::SLASH_EQ,
+        bp_left: 4,
+        bp_right: 3,
+    },
+    InfixOp {
+        kind: SyntaxKind::PERCENT_EQ,
+        bp_left: 4,
+        bp_right: 3,
+    },
     // Ternary `?:` — right-assoc (handled specially, builds TERNARY_EXPR).
-    InfixOp { kind: SyntaxKind::QUESTION, bp_left: 6, bp_right: 5 },
+    InfixOp {
+        kind: SyntaxKind::QUESTION,
+        bp_left: 6,
+        bp_right: 5,
+    },
     // Logical OR / AND.
-    InfixOp { kind: SyntaxKind::PIPE2, bp_left: 7, bp_right: 8 },
-    InfixOp { kind: SyntaxKind::AMP2, bp_left: 9, bp_right: 10 },
+    InfixOp {
+        kind: SyntaxKind::PIPE2,
+        bp_left: 7,
+        bp_right: 8,
+    },
+    InfixOp {
+        kind: SyntaxKind::AMP2,
+        bp_left: 9,
+        bp_right: 10,
+    },
     // Equality.
-    InfixOp { kind: SyntaxKind::EQ2, bp_left: 11, bp_right: 12 },
-    InfixOp { kind: SyntaxKind::EQ3, bp_left: 11, bp_right: 12 },
-    InfixOp { kind: SyntaxKind::NEQ, bp_left: 11, bp_right: 12 },
-    InfixOp { kind: SyntaxKind::NEQ2, bp_left: 11, bp_right: 12 },
+    InfixOp {
+        kind: SyntaxKind::EQ2,
+        bp_left: 11,
+        bp_right: 12,
+    },
+    InfixOp {
+        kind: SyntaxKind::EQ3,
+        bp_left: 11,
+        bp_right: 12,
+    },
+    InfixOp {
+        kind: SyntaxKind::NEQ,
+        bp_left: 11,
+        bp_right: 12,
+    },
+    InfixOp {
+        kind: SyntaxKind::NEQ2,
+        bp_left: 11,
+        bp_right: 12,
+    },
     // Relational.
-    InfixOp { kind: SyntaxKind::LT, bp_left: 13, bp_right: 14 },
-    InfixOp { kind: SyntaxKind::GT, bp_left: 13, bp_right: 14 },
-    InfixOp { kind: SyntaxKind::LT_EQ, bp_left: 13, bp_right: 14 },
-    InfixOp { kind: SyntaxKind::GT_EQ, bp_left: 13, bp_right: 14 },
+    InfixOp {
+        kind: SyntaxKind::LT,
+        bp_left: 13,
+        bp_right: 14,
+    },
+    InfixOp {
+        kind: SyntaxKind::GT,
+        bp_left: 13,
+        bp_right: 14,
+    },
+    InfixOp {
+        kind: SyntaxKind::LT_EQ,
+        bp_left: 13,
+        bp_right: 14,
+    },
+    InfixOp {
+        kind: SyntaxKind::GT_EQ,
+        bp_left: 13,
+        bp_right: 14,
+    },
     // Additive.
-    InfixOp { kind: SyntaxKind::PLUS, bp_left: 15, bp_right: 16 },
-    InfixOp { kind: SyntaxKind::MINUS, bp_left: 15, bp_right: 16 },
+    InfixOp {
+        kind: SyntaxKind::PLUS,
+        bp_left: 15,
+        bp_right: 16,
+    },
+    InfixOp {
+        kind: SyntaxKind::MINUS,
+        bp_left: 15,
+        bp_right: 16,
+    },
     // Multiplicative.
-    InfixOp { kind: SyntaxKind::STAR, bp_left: 17, bp_right: 18 },
-    InfixOp { kind: SyntaxKind::SLASH, bp_left: 17, bp_right: 18 },
-    InfixOp { kind: SyntaxKind::PERCENT, bp_left: 17, bp_right: 18 },
+    InfixOp {
+        kind: SyntaxKind::STAR,
+        bp_left: 17,
+        bp_right: 18,
+    },
+    InfixOp {
+        kind: SyntaxKind::SLASH,
+        bp_left: 17,
+        bp_right: 18,
+    },
+    InfixOp {
+        kind: SyntaxKind::PERCENT,
+        bp_left: 17,
+        bp_right: 18,
+    },
 ];
 
 /// Binding power at which a prefix operator (`!`, unary `-`/`+`, `typeof`)
@@ -197,10 +289,16 @@ pub fn parse_expr(text: &str, anchor: TextSize) -> ExprParse {
 
     let mut diagnostics = parser.diagnostics;
     diagnostics.sort_by_key(|d| (d.primary.start(), d.primary.end()));
-    let diagnostics: Vec<Diagnostic> =
-        diagnostics.into_iter().map(|d| shift_diagnostic(d, anchor)).collect();
+    let diagnostics: Vec<Diagnostic> = diagnostics
+        .into_iter()
+        .map(|d| shift_diagnostic(d, anchor))
+        .collect();
 
-    ExprParse { green, diagnostics: diagnostics.into(), anchor }
+    ExprParse {
+        green,
+        diagnostics: diagnostics.into(),
+        anchor,
+    }
 }
 
 /// Shifts a diagnostic's primary and secondary ranges right by `anchor`,
@@ -320,28 +418,58 @@ fn lex(text: &str) -> (Vec<RawTok>, Vec<Diagnostic>) {
             while pos < len && matches!(bytes[pos], b' ' | b'\t') {
                 pos += 1;
             }
-            toks.push(RawTok { kind: SyntaxKind::WHITESPACE, start, end: pos });
+            toks.push(RawTok {
+                kind: SyntaxKind::WHITESPACE,
+                start,
+                end: pos,
+            });
         } else if c.is_ascii_digit() || (c == '.' && starts_fraction(text, pos)) {
             pos = lex_number(bytes, pos);
-            toks.push(RawTok { kind: SyntaxKind::NUMBER, start, end: pos });
+            toks.push(RawTok {
+                kind: SyntaxKind::NUMBER,
+                start,
+                end: pos,
+            });
         } else if c == '"' || c == '\'' || c == '`' {
             let (end, terminated) = lex_string(text, pos, c);
             pos = end;
-            toks.push(RawTok { kind: SyntaxKind::STRING, start, end });
+            toks.push(RawTok {
+                kind: SyntaxKind::STRING,
+                start,
+                end,
+            });
             if !terminated {
-                diags.push(Diagnostic::new(DiagCode::LexUnterminatedString, rel(start, end)));
+                diags.push(Diagnostic::new(
+                    DiagCode::LexUnterminatedString,
+                    rel(start, end),
+                ));
             }
         } else if is_ident_start(c) {
             pos = lex_ident(text, pos);
-            toks.push(RawTok { kind: keyword_kind(&text[start..pos]), start, end: pos });
+            toks.push(RawTok {
+                kind: keyword_kind(&text[start..pos]),
+                start,
+                end: pos,
+            });
         } else if let Some((op_len, kind)) = match_operator(&text[pos..]) {
             pos += op_len;
-            toks.push(RawTok { kind, start, end: pos });
+            toks.push(RawTok {
+                kind,
+                start,
+                end: pos,
+            });
         } else {
             // Anything else: one error character, kept in the tree, reported.
             pos += c.len_utf8();
-            toks.push(RawTok { kind: SyntaxKind::ERROR_TOKEN, start, end: pos });
-            diags.push(Diagnostic::new(DiagCode::ExprExpectedToken, rel(start, pos)));
+            toks.push(RawTok {
+                kind: SyntaxKind::ERROR_TOKEN,
+                start,
+                end: pos,
+            });
+            diags.push(Diagnostic::new(
+                DiagCode::ExprExpectedToken,
+                rel(start, pos),
+            ));
         }
     }
 
@@ -351,7 +479,10 @@ fn lex(text: &str) -> (Vec<RawTok>, Vec<Diagnostic>) {
 /// True when a `.` at `pos` begins a fractional number (a digit follows), so
 /// `.5` lexes as a number but a lone `.` lexes as the member operator.
 fn starts_fraction(text: &str, pos: usize) -> bool {
-    text[pos..].chars().nth(1).is_some_and(|c| c.is_ascii_digit())
+    text[pos..]
+        .chars()
+        .nth(1)
+        .is_some_and(|c| c.is_ascii_digit())
 }
 
 /// Consumes a numeric literal starting at `start`: optional integer digits, an
@@ -466,17 +597,20 @@ fn attach_trivia(text: &str, raw: &[RawTok]) -> Vec<ExprTok> {
 
     let leading = take_leading(&mut toks, &mut pending);
     let len = text.len();
-    toks.push(ExprTok { kind: SyntaxKind::EOF, start: len, end: len, leading, trailing: Vec::new() });
+    toks.push(ExprTok {
+        kind: SyntaxKind::EOF,
+        start: len,
+        end: len,
+        leading,
+        trailing: Vec::new(),
+    });
     toks
 }
 
 /// Resolves a pending whitespace run at a token boundary: it leads the next
 /// token if it is the first token, otherwise trails the previous one (returning
 /// an empty leading run in that case).
-fn take_leading(
-    toks: &mut [ExprTok],
-    pending: &mut Vec<(usize, usize)>,
-) -> Vec<(usize, usize)> {
+fn take_leading(toks: &mut [ExprTok], pending: &mut Vec<(usize, usize)>) -> Vec<(usize, usize)> {
     if toks.is_empty() {
         std::mem::take(pending)
     } else if pending.is_empty() {
@@ -692,7 +826,10 @@ impl ExprParser<'_> {
         self.builder.start_node(SyntaxKind::NAME_REF);
         self.missing(SyntaxKind::IDENT);
         self.builder.finish_node();
-        self.diag(Diagnostic::new(DiagCode::ExprExpectedOperand, TextRange::empty(at)));
+        self.diag(Diagnostic::new(
+            DiagCode::ExprExpectedOperand,
+            TextRange::empty(at),
+        ));
     }
 
     /// Consumes a required closing bracket, or emits a missing one plus an
@@ -803,7 +940,10 @@ impl ExprParser<'_> {
             self.bump();
         }
         self.builder.finish_node();
-        self.diag(Diagnostic::new(DiagCode::ExprTrailingInput, start.cover(end)));
+        self.diag(Diagnostic::new(
+            DiagCode::ExprTrailingInput,
+            start.cover(end),
+        ));
     }
 
     /// Graceful handling when nesting exceeds [`MAX_EXPR_DEPTH`]: rather than
@@ -825,7 +965,10 @@ impl ExprParser<'_> {
             self.bump();
         }
         self.builder.finish_node();
-        self.diag(Diagnostic::new(DiagCode::ExprTrailingInput, start.cover(end)));
+        self.diag(Diagnostic::new(
+            DiagCode::ExprTrailingInput,
+            start.cover(end),
+        ));
     }
 }
 
@@ -985,7 +1128,10 @@ amp2 (bin_expr (name_ref ident) neq (name_ref ident))) pipe2 \
 
     #[test]
     fn prefix_bang() {
-        assert_eq!(shape("!a"), "(expr_root (prefix_expr bang (name_ref ident)) eof)");
+        assert_eq!(
+            shape("!a"),
+            "(expr_root (prefix_expr bang (name_ref ident)) eof)"
+        );
     }
 
     #[test]
@@ -1069,14 +1215,22 @@ amp2 (bin_expr (name_ref ident) neq (name_ref ident))) pipe2 \
     #[test]
     fn number_literals() {
         for src in [".5", "1e3", "2.5E-1", "42", "3.14", "10", "0"] {
-            assert_eq!(shape(src), "(expr_root (literal number) eof)", "for {src:?}");
+            assert_eq!(
+                shape(src),
+                "(expr_root (literal number) eof)",
+                "for {src:?}"
+            );
         }
     }
 
     #[test]
     fn string_literals_all_quotes_with_escapes() {
         for src in ["\"hi\"", "'hi'", "`hi`", "\"a\\\"b\"", "'a\\'b'", "`x\\`y`"] {
-            assert_eq!(shape(src), "(expr_root (literal string) eof)", "for {src:?}");
+            assert_eq!(
+                shape(src),
+                "(expr_root (literal string) eof)",
+                "for {src:?}"
+            );
         }
     }
 
@@ -1088,7 +1242,11 @@ amp2 (bin_expr (name_ref ident) neq (name_ref ident))) pipe2 \
             ("null", "null_kw"),
             ("undefined", "undefined_kw"),
         ] {
-            assert_eq!(shape(src), format!("(expr_root (literal {kw}) eof)"), "for {src:?}");
+            assert_eq!(
+                shape(src),
+                format!("(expr_root (literal {kw}) eof)"),
+                "for {src:?}"
+            );
         }
     }
 
@@ -1263,19 +1421,60 @@ amp2 (bin_expr (name_ref ident) neq (name_ref ident))) pipe2 \
         // A long left-associative chain is folded iteratively, so it stays
         // shallow and never triggers the depth guard.
         let terms = 2000;
-        let src = std::iter::repeat_n("1", terms).collect::<Vec<_>>().join("+");
+        let src = std::iter::repeat_n("1", terms)
+            .collect::<Vec<_>>()
+            .join("+");
         let p = parse_expr(&src, TextSize::new(0));
         assert_eq!(p.to_source(), src);
-        assert!(p.diagnostics().is_empty(), "a clean chain has no diagnostics");
+        assert!(
+            p.diagnostics().is_empty(),
+            "a clean chain has no diagnostics"
+        );
     }
 
     #[test]
     fn no_panic_and_round_trip_on_odd_inputs() {
         for src in [
-            "", "   ", "@", ")", "]", ":", "(", "[", ".", "?", "a?", "a?b", "a:b", "f(", "f(a",
-            "a[", "a.", "1..2", "1e", ".e5", "&&", "===", "a=b=c", "!!!x", "((((", "))))",
-            "typeof", "-", "+", "\"", "'", "`", "'\\", "a , , b", "f(,)", "x[]", "1 2 3",
-            "変数.フィールド", "\t\t", "a\nb",
+            "",
+            "   ",
+            "@",
+            ")",
+            "]",
+            ":",
+            "(",
+            "[",
+            ".",
+            "?",
+            "a?",
+            "a?b",
+            "a:b",
+            "f(",
+            "f(a",
+            "a[",
+            "a.",
+            "1..2",
+            "1e",
+            ".e5",
+            "&&",
+            "===",
+            "a=b=c",
+            "!!!x",
+            "((((",
+            "))))",
+            "typeof",
+            "-",
+            "+",
+            "\"",
+            "'",
+            "`",
+            "'\\",
+            "a , , b",
+            "f(,)",
+            "x[]",
+            "1 2 3",
+            "変数.フィールド",
+            "\t\t",
+            "a\nb",
         ] {
             let p = parse_expr(src, TextSize::new(7));
             assert_eq!(p.to_source(), src, "round-trip failed for {src:?}");

@@ -1,13 +1,9 @@
 use std::fs;
 use tyrano_lexer::Scanner;
-use tyrano_parser::parser::{
-    Parser,
-};
 use tyrano_parser::cst::CstNode;
 use tyrano_parser::grammar_meta;
+use tyrano_parser::parser::Parser;
 use tyrano_parser::tables::token_type_to_id;
-
-
 
 pub fn run_tree(file_path: &str) -> Result<(), String> {
     let content =
@@ -106,4 +102,3 @@ fn escape_lexeme(s: &str) -> String {
         .replace('\r', "\\r")
         .replace('\t', "\\t")
 }
-

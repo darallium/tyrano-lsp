@@ -2,10 +2,9 @@ use clap::Parser;
 use tyrano_parser_debugger::{
     cli::{Cli, Commands},
     graph::run_graph,
-    tree::run_tree,
     parser::run_parse,
+    tree::run_tree,
 };
-
 
 fn main() {
     let cli = Cli::parse();
@@ -37,6 +36,3 @@ fn main() {
         }
     }
 }
-
-
-

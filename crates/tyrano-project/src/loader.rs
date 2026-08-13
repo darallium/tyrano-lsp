@@ -148,7 +148,10 @@ mod tests {
         tmp.write("data/scenario/first.ks", "*start\n");
         tmp.write("data/scenario/sub/ev.ks", "*ev\n");
         tmp.write("data/scenario/readme.txt", "not a scenario");
-        tmp.write("data/others/plugin/demo/init.ks", "[macro name=demo][endmacro]\n");
+        tmp.write(
+            "data/others/plugin/demo/init.ks",
+            "[macro name=demo][endmacro]\n",
+        );
         tmp.write("data/others/plugin/demo/main.js", "sf.demo = true;\n");
         tmp.write("data/bgimage/room.jpg", "");
         tmp.write("data/bgm/theme.ogg", "");

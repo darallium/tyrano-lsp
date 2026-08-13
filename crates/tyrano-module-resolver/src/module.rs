@@ -22,6 +22,9 @@ pub fn script_module(db: &dyn ProjectDb, file: File) -> Option<ScriptModule> {
     let path = file.path(db);
     settings.scenario_roots.iter().find_map(|root| {
         let rest = path.strip_prefix(root)?;
-        Some(ScriptModule { file, storage: StorageName::new(db, rest.to_string()) })
+        Some(ScriptModule {
+            file,
+            storage: StorageName::new(db, rest.to_string()),
+        })
     })
 }

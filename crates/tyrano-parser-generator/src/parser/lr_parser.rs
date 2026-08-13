@@ -243,10 +243,7 @@ impl LRParser {
             },
             "tag_content" => {
                 let mut iter = children.into_iter();
-                let name = iter
-                    .next()
-                    .map(|n| n.flatten_text())
-                    .unwrap_or_default();
+                let name = iter.next().map(|n| n.flatten_text()).unwrap_or_default();
                 let mut parameters = Vec::new();
                 if let Some(list) = iter.next()
                     && let AstNode::Scenario { lines } = *list
@@ -279,10 +276,7 @@ impl LRParser {
             }
             "parameter" => {
                 let mut iter = children.into_iter();
-                let name = iter
-                    .next()
-                    .map(|n| n.flatten_text())
-                    .unwrap_or_default();
+                let name = iter.next().map(|n| n.flatten_text()).unwrap_or_default();
                 let has_equal = iter.next().is_some();
                 let value = iter.next().map(|n| n.flatten_text());
                 AstNode::TagParameter {

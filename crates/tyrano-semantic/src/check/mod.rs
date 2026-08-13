@@ -20,12 +20,12 @@ pub(crate) fn all_tags(scenario: &Scenario) -> Vec<AnyTag> {
     for line in scenario.lines() {
         match line {
             Line::AtTag(tag) => out.push(AnyTag::At(tag)),
-            Line::Text(text) => out.extend(text.segments().into_iter().filter_map(|seg| {
-                match seg {
+            Line::Text(text) => {
+                out.extend(text.segments().into_iter().filter_map(|seg| match seg {
                     TextSegment::Tag(tag) => Some(AnyTag::Inline(tag)),
                     TextSegment::Text(_) => None,
-                }
-            })),
+                }))
+            }
             _ => {}
         }
     }

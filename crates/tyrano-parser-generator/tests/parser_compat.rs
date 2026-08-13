@@ -1,8 +1,8 @@
 //! End-to-end parser compatibility tests: lexer + LALR tables + AST building
 //! against real-world TyranoScript scenario snippets.
 
-use tyrano_parser_generator::ast::AstNode;
 use tyrano_lexer::ParserConfig;
+use tyrano_parser_generator::ast::AstNode;
 use tyrano_parser_generator::generator::TableGenerator;
 use tyrano_parser_generator::grammar::GrammarParser;
 use tyrano_parser_generator::parser::LRParser;
@@ -155,10 +155,7 @@ fn flag_param_has_no_value() {
     let lines = lines(&ast);
     assert_eq!(
         tag_params(&lines[0]),
-        vec![
-            ("*".to_string(), None),
-            ("flag2".to_string(), None),
-        ]
+        vec![("*".to_string(), None), ("flag2".to_string(), None),]
     );
 }
 

@@ -191,13 +191,15 @@ fn resolve_escapes(s: &str) -> String {
 /// 5. A value whose trimmed form is exactly `undefined` becomes `""`.
 fn cook_value(raw: &str, opts: &InterpretOptions) -> String {
     let chars: Vec<char> = raw.chars().collect();
-    let quote = chars.first().copied().filter(|c| matches!(c, '"' | '\'' | '`'));
+    let quote = chars
+        .first()
+        .copied()
+        .filter(|c| matches!(c, '"' | '\'' | '`'));
     let (start, end_char) = match quote {
         Some(q) => (1usize, q),
         None => (0usize, ' '),
     };
-    let remove_spaces =
-        opts.keep_space == KeepSpaceLevel::RemoveAll && quote != Some('`');
+    let remove_spaces = opts.keep_space == KeepSpaceLevel::RemoveAll && quote != Some('`');
 
     let mut value = String::new();
     let mut escape = false;
@@ -390,7 +392,10 @@ ast_node!(
 impl LabelLine {
     /// The raw TEXT token inside the LABEL_NAME node, if present.
     pub fn name_token(&self) -> Option<SyntaxToken> {
-        let inner = self.syntax.children().find(|n| n.kind() == SyntaxKind::LABEL_NAME)?;
+        let inner = self
+            .syntax
+            .children()
+            .find(|n| n.kind() == SyntaxKind::LABEL_NAME)?;
         child_token(&inner, SyntaxKind::TEXT)
     }
 
@@ -533,7 +538,9 @@ impl TagName {
 
     /// The tag name text (empty when the name token is missing).
     pub fn text(&self) -> String {
-        self.token().map(|t| t.text().to_string()).unwrap_or_default()
+        self.token()
+            .map(|t| t.text().to_string())
+            .unwrap_or_default()
     }
 }
 
@@ -657,7 +664,9 @@ impl Param {
         if self.is_macro_star() {
             return "*".to_string();
         }
-        child_token(&self.syntax, SyntaxKind::IDENT).map(|t| t.text().to_string()).unwrap_or_default()
+        child_token(&self.syntax, SyntaxKind::IDENT)
+            .map(|t| t.text().to_string())
+            .unwrap_or_default()
     }
 
     /// Whether the parameter has an `=` (distinguishes `name=` / `name=value`
@@ -710,7 +719,9 @@ impl ParamValue {
 
     /// The value token text verbatim (quotes and escapes included).
     pub fn raw(&self) -> String {
-        self.token().map(|t| t.text().to_string()).unwrap_or_default()
+        self.token()
+            .map(|t| t.text().to_string())
+            .unwrap_or_default()
     }
 
     /// The cooked value: quote-stripped, escape-resolved, space-handled per
@@ -778,12 +789,17 @@ ast_node!(
 
 /// First descendant tag whose name equals `name`.
 fn first_tag_named(node: &SyntaxNode, name: &str) -> Option<AnyTag> {
-    node.descendants().filter_map(AnyTag::cast).find(|t| t.name() == name)
+    node.descendants()
+        .filter_map(AnyTag::cast)
+        .find(|t| t.name() == name)
 }
 
 /// Last descendant tag whose name equals `name`.
 fn last_tag_named(node: &SyntaxNode, name: &str) -> Option<AnyTag> {
-    node.descendants().filter_map(AnyTag::cast).filter(|t| t.name() == name).last()
+    node.descendants()
+        .filter_map(AnyTag::cast)
+        .filter(|t| t.name() == name)
+        .last()
 }
 
 /// Direct-child raw-block token texts of the given kind, joined with `\n`.
@@ -858,7 +874,9 @@ mod tests {
     fn only_inline_tag(src: &str) -> InlineTag {
         let scn = scenario(src);
         let line = scn.lines().next().expect("one line");
-        let Line::Text(tl) = line else { panic!("expected text line") };
+        let Line::Text(tl) = line else {
+            panic!("expected text line")
+        };
         tl.segments()
             .into_iter()
             .find_map(|s| match s {
@@ -873,8 +891,11 @@ mod tests {
         let tag = only_inline_tag("[bg storage=room.jpg time=1000]\n");
         assert_eq!(tag.name(), "bg");
         let opts = InterpretOptions::default();
-        let params: Vec<(String, Option<String>)> =
-            tag.params().iter().map(|p| (p.name(), p.cooked_value(&opts))).collect();
+        let params: Vec<(String, Option<String>)> = tag
+            .params()
+            .iter()
+            .map(|p| (p.name(), p.cooked_value(&opts)))
+            .collect();
         assert_eq!(
             params,
             vec![
@@ -882,16 +903,23 @@ mod tests {
                 ("time".to_string(), Some("1000".to_string())),
             ]
         );
-        assert_eq!(tag.param("storage").unwrap().raw_value().as_deref(), Some("room.jpg"));
+        assert_eq!(
+            tag.param("storage").unwrap().raw_value().as_deref(),
+            Some("room.jpg")
+        );
     }
 
     #[test]
     fn at_tag_strips_quotes() {
         let scn = scenario("@jump storage=\"title.ks\"\n");
-        let Line::AtTag(at) = scn.lines().next().unwrap() else { panic!("at tag") };
+        let Line::AtTag(at) = scn.lines().next().unwrap() else {
+            panic!("at tag")
+        };
         assert_eq!(at.name(), "jump");
         assert_eq!(
-            at.param("storage").unwrap().cooked_value(&InterpretOptions::default()),
+            at.param("storage")
+                .unwrap()
+                .cooked_value(&InterpretOptions::default()),
             Some("title.ks".to_string())
         );
     }
@@ -918,15 +946,24 @@ mod tests {
     fn empty_and_undefined_values() {
         let opts = InterpretOptions::default();
         assert_eq!(
-            only_inline_tag("[a t=]").param("t").unwrap().cooked_value(&opts),
+            only_inline_tag("[a t=]")
+                .param("t")
+                .unwrap()
+                .cooked_value(&opts),
             Some(String::new())
         );
         assert_eq!(
-            only_inline_tag("[a t=\"undefined\"]").param("t").unwrap().cooked_value(&opts),
+            only_inline_tag("[a t=\"undefined\"]")
+                .param("t")
+                .unwrap()
+                .cooked_value(&opts),
             Some(String::new())
         );
         assert_eq!(
-            only_inline_tag("[a t=undefined]").param("t").unwrap().cooked_value(&opts),
+            only_inline_tag("[a t=undefined]")
+                .param("t")
+                .unwrap()
+                .cooked_value(&opts),
             Some(String::new())
         );
     }
@@ -934,18 +971,33 @@ mod tests {
     #[test]
     fn flag_param_has_no_cooked_value() {
         let tag = only_inline_tag("[bg time storage=x]");
-        assert_eq!(tag.param("time").unwrap().cooked_value(&InterpretOptions::default()), None);
+        assert_eq!(
+            tag.param("time")
+                .unwrap()
+                .cooked_value(&InterpretOptions::default()),
+            None
+        );
     }
 
     fn cooked(src: &str, opts: &InterpretOptions) -> String {
-        only_inline_tag(src).param("t").unwrap().cooked_value(opts).unwrap()
+        only_inline_tag(src)
+            .param("t")
+            .unwrap()
+            .cooked_value(opts)
+            .unwrap()
     }
 
     #[test]
     fn keep_space_levels() {
         let trim = InterpretOptions::default();
-        let remove = InterpretOptions { keep_space: KeepSpaceLevel::RemoveAll, ..trim.clone() };
-        let keep = InterpretOptions { keep_space: KeepSpaceLevel::KeepAll, ..trim.clone() };
+        let remove = InterpretOptions {
+            keep_space: KeepSpaceLevel::RemoveAll,
+            ..trim.clone()
+        };
+        let keep = InterpretOptions {
+            keep_space: KeepSpaceLevel::KeepAll,
+            ..trim.clone()
+        };
         assert_eq!(cooked("[a t=\" x y \"]", &trim), "x y");
         assert_eq!(cooked("[a t=\" x y \"]", &remove), "xy");
         assert_eq!(cooked("[a t=\" x y \"]", &keep), " x y ");
@@ -971,15 +1023,22 @@ mod tests {
     #[test]
     fn label_name_and_value() {
         let scn = scenario("*start|セーブ1\n");
-        let Line::Label(l) = scn.lines().next().unwrap() else { panic!("label") };
+        let Line::Label(l) = scn.lines().next().unwrap() else {
+            panic!("label")
+        };
         assert_eq!(l.name().as_deref(), Some("start"));
-        assert_eq!(l.value(&InterpretOptions::default()).as_deref(), Some("セーブ1"));
+        assert_eq!(
+            l.value(&InterpretOptions::default()).as_deref(),
+            Some("セーブ1")
+        );
     }
 
     #[test]
     fn label_without_value_is_none() {
         let scn = scenario("*gamestart\n");
-        let Line::Label(l) = scn.lines().next().unwrap() else { panic!("label") };
+        let Line::Label(l) = scn.lines().next().unwrap() else {
+            panic!("label")
+        };
         assert_eq!(l.name().as_deref(), Some("gamestart"));
         assert_eq!(l.value(&InterpretOptions::default()), None);
     }
@@ -987,33 +1046,50 @@ mod tests {
     #[test]
     fn label_first_segment_truncation() {
         let scn = scenario("*a|b|c\n");
-        let Line::Label(l) = scn.lines().next().unwrap() else { panic!("label") };
+        let Line::Label(l) = scn.lines().next().unwrap() else {
+            panic!("label")
+        };
         let default = InterpretOptions::default();
         assert_eq!(l.value(&default).as_deref(), Some("b"));
-        let full = InterpretOptions { label_value_first_segment_only: false, ..default };
+        let full = InterpretOptions {
+            label_value_first_segment_only: false,
+            ..default
+        };
         assert_eq!(l.value(&full).as_deref(), Some("b|c"));
     }
 
     #[test]
     fn label_segments_trimmed() {
         let scn = scenario("* start | 題名 \n");
-        let Line::Label(l) = scn.lines().next().unwrap() else { panic!("label") };
+        let Line::Label(l) = scn.lines().next().unwrap() else {
+            panic!("label")
+        };
         assert_eq!(l.name().as_deref(), Some("start"));
-        assert_eq!(l.value(&InterpretOptions::default()).as_deref(), Some("題名"));
+        assert_eq!(
+            l.value(&InterpretOptions::default()).as_deref(),
+            Some("題名")
+        );
     }
 
     #[test]
     fn chara_name_and_face() {
         let scn = scenario("#akane:happy\n");
-        let Line::Chara(c) = scn.lines().next().unwrap() else { panic!("chara") };
+        let Line::Chara(c) = scn.lines().next().unwrap() else {
+            panic!("chara")
+        };
         assert_eq!(c.name().as_deref(), Some("akane"));
-        assert_eq!(c.face(&InterpretOptions::default()).as_deref(), Some("happy"));
+        assert_eq!(
+            c.face(&InterpretOptions::default()).as_deref(),
+            Some("happy")
+        );
     }
 
     #[test]
     fn bare_sharp_has_no_name() {
         let scn = scenario("#\n");
-        let Line::Chara(c) = scn.lines().next().unwrap() else { panic!("chara") };
+        let Line::Chara(c) = scn.lines().next().unwrap() else {
+            panic!("chara")
+        };
         assert_eq!(c.name(), None);
         assert_eq!(c.face(&InterpretOptions::default()), None);
     }
@@ -1021,22 +1097,31 @@ mod tests {
     #[test]
     fn chara_face_truncation_and_spacing() {
         let scn = scenario("#a:b:c\n");
-        let Line::Chara(c) = scn.lines().next().unwrap() else { panic!("chara") };
+        let Line::Chara(c) = scn.lines().next().unwrap() else {
+            panic!("chara")
+        };
         let default = InterpretOptions::default();
         assert_eq!(c.face(&default).as_deref(), Some("b"));
-        let full = InterpretOptions { chara_face_first_segment_only: false, ..default };
+        let full = InterpretOptions {
+            chara_face_first_segment_only: false,
+            ..default
+        };
         assert_eq!(c.face(&full).as_deref(), Some("b:c"));
 
         // Face keeps its leading space (segments are not trimmed individually).
         let scn = scenario("#a: b\n");
-        let Line::Chara(c) = scn.lines().next().unwrap() else { panic!("chara") };
+        let Line::Chara(c) = scn.lines().next().unwrap() else {
+            panic!("chara")
+        };
         assert_eq!(c.face(&InterpretOptions::default()).as_deref(), Some(" b"));
     }
 
     #[test]
     fn text_segments_and_cooked() {
         let scn = scenario("こんにちは[l]世界\n");
-        let Line::Text(tl) = scn.lines().next().unwrap() else { panic!("text") };
+        let Line::Text(tl) = scn.lines().next().unwrap() else {
+            panic!("text")
+        };
         let kinds: Vec<&str> = tl
             .segments()
             .iter()
@@ -1052,7 +1137,9 @@ mod tests {
     #[test]
     fn text_escapes_resolved() {
         let scn = scenario(r"\[not a tag\]");
-        let Line::Text(tl) = scn.lines().next().unwrap() else { panic!("text") };
+        let Line::Text(tl) = scn.lines().next().unwrap() else {
+            panic!("text")
+        };
         assert_eq!(tl.cooked_text(), "[not a tag]");
         assert!(!tl.preserves_whitespace());
     }
@@ -1060,7 +1147,9 @@ mod tests {
     #[test]
     fn underscore_preserves_whitespace() {
         let scn = scenario("_  spaced\n");
-        let Line::Text(tl) = scn.lines().next().unwrap() else { panic!("text") };
+        let Line::Text(tl) = scn.lines().next().unwrap() else {
+            panic!("text")
+        };
         assert!(tl.preserves_whitespace());
         assert_eq!(tl.cooked_text(), "  spaced");
     }
@@ -1068,19 +1157,28 @@ mod tests {
     #[test]
     fn comment_and_block_comment() {
         let scn = scenario(";コメント\n");
-        let Line::Comment(c) = scn.lines().next().unwrap() else { panic!("comment") };
+        let Line::Comment(c) = scn.lines().next().unwrap() else {
+            panic!("comment")
+        };
         // COMMENT_TEXT is the body after the `;` (the `;` is its own token).
         assert_eq!(c.text().as_deref(), Some("コメント"));
 
         let scn = scenario("/*\nhidden\nlines\n*/\n");
-        let Line::BlockComment(b) = scn.lines().next().unwrap() else { panic!("block") };
-        assert_eq!(b.text_lines(), vec!["hidden".to_string(), "lines".to_string()]);
+        let Line::BlockComment(b) = scn.lines().next().unwrap() else {
+            panic!("block")
+        };
+        assert_eq!(
+            b.text_lines(),
+            vec!["hidden".to_string(), "lines".to_string()]
+        );
     }
 
     #[test]
     fn iscript_block_code_and_tags() {
         let scn = scenario("[iscript]\nvar a = 1;\n[endscript]\n");
-        let Line::IScript(b) = scn.lines().next().unwrap() else { panic!("iscript") };
+        let Line::IScript(b) = scn.lines().next().unwrap() else {
+            panic!("iscript")
+        };
         assert_eq!(b.code(), "var a = 1;");
         assert_eq!(b.open_tag().unwrap().name(), "iscript");
         assert_eq!(b.close_tag().unwrap().name(), "endscript");
@@ -1089,7 +1187,9 @@ mod tests {
     #[test]
     fn iscript_multi_line_code() {
         let scn = scenario("before[iscript]var a=1;\ncode\n[endscript]");
-        let Line::IScript(b) = scn.lines().next().unwrap() else { panic!("iscript") };
+        let Line::IScript(b) = scn.lines().next().unwrap() else {
+            panic!("iscript")
+        };
         assert_eq!(b.code(), "var a=1;\ncode");
     }
 
@@ -1097,7 +1197,9 @@ mod tests {
     fn loose_endscript_quirk_line_is_outside_block() {
         let scn = scenario("[iscript]\nvar s = \"endscript\";\n[s]\n");
         let mut lines = scn.lines();
-        let Line::IScript(b) = lines.next().unwrap() else { panic!("iscript") };
+        let Line::IScript(b) = lines.next().unwrap() else {
+            panic!("iscript")
+        };
         // Closed by the loose quirk => no closing tag inside the block.
         assert!(b.close_tag().is_none());
         assert_eq!(b.open_tag().unwrap().name(), "iscript");
@@ -1108,7 +1210,9 @@ mod tests {
     #[test]
     fn html_block_code() {
         let scn = scenario("[html]\n<b>x</b>\n[endhtml]\n");
-        let Line::Html(b) = scn.lines().next().unwrap() else { panic!("html") };
+        let Line::Html(b) = scn.lines().next().unwrap() else {
+            panic!("html")
+        };
         assert_eq!(b.code(), "<b>x</b>");
         assert_eq!(b.open_tag().unwrap().name(), "html");
         assert_eq!(b.close_tag().unwrap().name(), "endhtml");

@@ -82,7 +82,10 @@ impl UseDefMap {
 
     /// Uses that resolved to `def`, in document order.
     pub fn uses_of(&self, def: DefinitionId) -> &[UseId] {
-        self.def_to_uses.get(def.index()).map(Vec::as_slice).unwrap_or(&[])
+        self.def_to_uses
+            .get(def.index())
+            .map(Vec::as_slice)
+            .unwrap_or(&[])
     }
 
     /// Appends a reference, maintaining the back-map. `def_count` is the

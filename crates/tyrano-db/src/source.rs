@@ -65,7 +65,8 @@ mod tests {
         let file = SourceFile::with_defaults(&db, "ab\nc\n".to_string());
         let before = line_index(&db, file);
         assert_eq!(before.line_count(), 3);
-        file.set_text(&mut db).to("one\ntwo\nthree\nfour\n".to_string());
+        file.set_text(&mut db)
+            .to("one\ntwo\nthree\nfour\n".to_string());
         let after = line_index(&db, file);
         assert_eq!(after.line_count(), 5);
     }
@@ -75,11 +76,15 @@ mod tests {
         let mut db = RootDatabase::default();
         let file = SourceFile::with_defaults(&db, "ab\nc\n".to_string());
         let before = line_index(&db, file);
-        file.set_parse_options(&mut db)
-            .to(ParseOptions { loose_endscript_termination: false });
+        file.set_parse_options(&mut db).to(ParseOptions {
+            loose_endscript_termination: false,
+        });
         let after = line_index(&db, file);
         // Field-granular dependency: the line index does not read parse_options.
-        assert!(Arc::ptr_eq(&before, &after), "options must not invalidate line_index");
+        assert!(
+            Arc::ptr_eq(&before, &after),
+            "options must not invalidate line_index"
+        );
     }
 
     #[test]

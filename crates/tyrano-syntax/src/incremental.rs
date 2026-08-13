@@ -84,7 +84,9 @@ pub(crate) fn reparse(old: &Parse, new_source: &str, _edits: &[TextEdit]) -> Par
         let len = child.full_len().to_usize();
         let (start, end) = (offset, offset + len);
         offset = end;
-        let GreenElement::Node(node) = child else { continue };
+        let GreenElement::Node(node) = child else {
+            continue;
+        };
         if !self_terminated(node) {
             continue;
         }
@@ -98,11 +100,16 @@ pub(crate) fn reparse(old: &Parse, new_source: &str, _edits: &[TextEdit]) -> Par
     }
 
     let options = old.options().clone();
-    let lexed = crate::lexer::lex(new_source, &crate::lexer::LexOptions {
-        loose_endscript_termination: options.loose_endscript_termination,
-    });
-    let reuse =
-        ReuseMap { old_source: old.source().clone(), candidates };
+    let lexed = crate::lexer::lex(
+        new_source,
+        &crate::lexer::LexOptions {
+            loose_endscript_termination: options.loose_endscript_termination,
+        },
+    );
+    let reuse = ReuseMap {
+        old_source: old.source().clone(),
+        candidates,
+    };
     parse_lexed_with_reuse(new_source, lexed, &options, Some(reuse))
 }
 
@@ -127,8 +134,11 @@ fn self_terminated(node: &GreenNode) -> bool {
 /// of which old and new text agree (common prefix / common suffix, with
 /// the suffix clamped so the two regions never overlap).
 fn diff_bounds(old: &str, new: &str) -> (usize, usize) {
-    let prefix =
-        old.bytes().zip(new.bytes()).take_while(|(a, b)| a == b).count();
+    let prefix = old
+        .bytes()
+        .zip(new.bytes())
+        .take_while(|(a, b)| a == b)
+        .count();
     let max_suffix = old.len().min(new.len()) - prefix;
     let suffix = old
         .bytes()
@@ -170,7 +180,10 @@ _  インデント保持テキスト\n\
         new.push_str(replacement);
         new.push_str(&src[range.end..]);
         let te = TextEdit::replace(
-            TextRange::new(TextSize::new(range.start as u32), TextSize::new(range.end as u32)),
+            TextRange::new(
+                TextSize::new(range.start as u32),
+                TextSize::new(range.end as u32),
+            ),
             replacement.to_string(),
         );
         (new, te)
@@ -182,7 +195,11 @@ _  インデント保持テキスト\n\
         let inc = old.reparse(new_source, edits);
         let full = parse_with_options(new_source, old.options());
         assert_eq!(inc.green(), full.green(), "tree must equal full reparse");
-        assert_eq!(inc.diagnostics(), full.diagnostics(), "diagnostics must match");
+        assert_eq!(
+            inc.diagnostics(),
+            full.diagnostics(),
+            "diagnostics must match"
+        );
         assert_eq!(inc.to_source(), new_source, "round-trip must hold");
         inc
     }
@@ -216,7 +233,10 @@ _  インデント保持テキスト\n\
         let pos = CORPUS.rfind("*end").unwrap();
         let (new, te) = edit(CORPUS, pos..pos + 4, "*fin");
         let inc = check_equivalent(&old, &new, &[te]);
-        assert!(shared_top_level(&old, &inc) >= 7, "prefix lines must be reused");
+        assert!(
+            shared_top_level(&old, &inc) >= 7,
+            "prefix lines must be reused"
+        );
     }
 
     #[test]
@@ -225,7 +245,10 @@ _  インデント保持テキスト\n\
         let pos = CORPUS.find("オープニング").unwrap();
         let (new, te) = edit(CORPUS, pos..pos, "改:");
         let inc = check_equivalent(&old, &new, &[te]);
-        assert!(shared_top_level(&old, &inc) >= 7, "suffix lines must be reused");
+        assert!(
+            shared_top_level(&old, &inc) >= 7,
+            "suffix lines must be reused"
+        );
     }
 
     #[test]
@@ -283,7 +306,9 @@ _  インデント保持テキスト\n\
 
     #[test]
     fn options_are_inherited() {
-        let strict = ParseOptions { loose_endscript_termination: false };
+        let strict = ParseOptions {
+            loose_endscript_termination: false,
+        };
         let src = "[iscript]\nvar s = \"endscript\";\n";
         let old = parse_with_options(src, &strict);
         let (new, te) = edit(src, 0..0, ";c\n");
@@ -296,11 +321,24 @@ _  インデント保持テキスト\n\
         // Deterministic LCG-driven edit storm over the corpus.
         let mut state: u64 = 0x243F_6A88_85A3_08D3;
         let mut rnd = move |m: usize| {
-            state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             ((state >> 33) as usize) % m.max(1)
         };
-        let snippets =
-            ["[l]", "\n", "*x|y", "@bg t=1", "[iscript]", "endscript", "\"", "]", "あ", ";c", "/*"];
+        let snippets = [
+            "[l]",
+            "\n",
+            "*x|y",
+            "@bg t=1",
+            "[iscript]",
+            "endscript",
+            "\"",
+            "]",
+            "あ",
+            ";c",
+            "/*",
+        ];
         let mut src = CORPUS.to_string();
         let mut parsed = parse(&src);
         for _ in 0..60 {

@@ -15,9 +15,7 @@ pub fn candidate_paths(settings: &ProjectSettings, name: &str) -> Vec<ProjectPat
         let Ok(exact) = root.join(name) else { continue };
         let needs_completion = exact.extension().is_none();
         out.push(exact);
-        if needs_completion
-            && let Ok(completed) = root.join(&format!("{name}.ks"))
-        {
+        if needs_completion && let Ok(completed) = root.join(&format!("{name}.ks")) {
             out.push(completed);
         }
     }

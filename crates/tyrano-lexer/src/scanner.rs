@@ -307,7 +307,11 @@ impl Scanner {
             }
             if c == '[' {
                 if !text.is_empty() {
-                    tokens.push(Token::new(TokenType::Text(std::mem::take(&mut text)), line_no, 1));
+                    tokens.push(Token::new(
+                        TokenType::Text(std::mem::take(&mut text)),
+                        line_no,
+                        1,
+                    ));
                 }
 
                 // Extract the tag body up to the matching ']' at depth 0,
@@ -380,7 +384,11 @@ impl Scanner {
                     let rest: String = chars[i..].iter().collect();
                     let rest = rest.trim();
                     if !rest.is_empty() {
-                        tokens.push(Token::new(TokenType::HtmlText(rest.to_string()), line_no, 1));
+                        tokens.push(Token::new(
+                            TokenType::HtmlText(rest.to_string()),
+                            line_no,
+                            1,
+                        ));
                     }
                     return;
                 }
@@ -575,10 +583,7 @@ fn classify_unquoted(value: String) -> TokenType {
 /// First space-delimited word of a tag body (after leading spaces) — the
 /// tag's name as `makeTag` would compute it.
 fn tag_name_of(body: &str) -> &str {
-    body.trim_start_matches(' ')
-        .split(' ')
-        .next()
-        .unwrap_or("")
+    body.trim_start_matches(' ').split(' ').next().unwrap_or("")
 }
 
 /// True if the trimmed line begins with a `[...]` or `@` tag whose makeTag

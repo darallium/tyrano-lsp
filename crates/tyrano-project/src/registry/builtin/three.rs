@@ -7,19 +7,48 @@
 //! comma-separated `x,y,z` triple (engine's `$.three_pos`), so they stay
 //! [`ValueKind::Text`] even where the engine default is a single number.
 
-use super::{ExtraParams::{Allow, Deny}, TagSpec, opt, optd, req, tag};
 use super::ValueKind::{Asset, Boolean, Color, Enum, Expression, Label, Number, Scenario, Text};
+use super::{
+    ExtraParams::{Allow, Deny},
+    TagSpec, opt, optd, req, tag,
+};
 use crate::project::AssetKind;
 
 /// The tween easing keyword set accepted by `3d_anim`'s `effect` parameter
 /// (verified against the engine's `:param` doc comment, which enumerates the
 /// full list).
 const ANIM_EFFECTS: &[&str] = &[
-    "swing", "linear", "easeInQuad", "easeOutQuad", "easeInOutQuad", "easeInCubic", "easeOutCubic",
-    "easeInOutCubic", "easeInQuart", "easeOutQuart", "easeInOutQuart", "easeInQuint", "easeOutQuint",
-    "easeInOutQuint", "easeInSine", "easeOutSine", "easeInOutSine", "easeInExpo", "easeOutExpo",
-    "easeInOutExpo", "easeInCirc", "easeOutCirc", "easeInOutCirc", "easeInElastic", "easeOutElastic",
-    "easeInOutElastic", "easeInBack", "easeOutBack", "easeInOutBack", "easeInBounce", "easeOutBounce",
+    "swing",
+    "linear",
+    "easeInQuad",
+    "easeOutQuad",
+    "easeInOutQuad",
+    "easeInCubic",
+    "easeOutCubic",
+    "easeInOutCubic",
+    "easeInQuart",
+    "easeOutQuart",
+    "easeInOutQuart",
+    "easeInQuint",
+    "easeOutQuint",
+    "easeInOutQuint",
+    "easeInSine",
+    "easeOutSine",
+    "easeInOutSine",
+    "easeInExpo",
+    "easeOutExpo",
+    "easeInOutExpo",
+    "easeInCirc",
+    "easeOutCirc",
+    "easeInOutCirc",
+    "easeInElastic",
+    "easeOutElastic",
+    "easeInOutElastic",
+    "easeInBack",
+    "easeOutBack",
+    "easeInOutBack",
+    "easeInBounce",
+    "easeOutBounce",
     "easeInOutBounce",
 ];
 
@@ -39,7 +68,11 @@ pub(super) const TAGS: &[TagSpec] = &[
         &[
             opt("layer", Text),
             optd("page", Enum(&["fore", "back"]), "fore"),
-            optd("camera", Enum(&["Perspective", "Orthographic"]), "Perspective"),
+            optd(
+                "camera",
+                Enum(&["Perspective", "Orthographic"]),
+                "Perspective",
+            ),
             optd("near", Number, "10"),
             optd("far", Number, "5000"),
             optd("material_type", Enum(MATERIAL_TYPES), "basic"),
@@ -61,7 +94,17 @@ pub(super) const TAGS: &[TagSpec] = &[
     tag(
         "3d_scene",
         &[
-            opt("tonemap", Enum(&["No", "Linear", "Reinhard", "Uncharted2", "Cineon", "ACESFilmic"])),
+            opt(
+                "tonemap",
+                Enum(&[
+                    "No",
+                    "Linear",
+                    "Reinhard",
+                    "Uncharted2",
+                    "Cineon",
+                    "ACESFilmic",
+                ]),
+            ),
             optd("tonemap_value", Number, "0.8"),
             opt("light_amb", Number),
             opt("fog", Boolean),
@@ -74,22 +117,51 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "3d_camera",
-        &[opt("pos", Text), opt("rot", Text), opt("lookat", Text), optd("next", Boolean, "true")],
+        &[
+            opt("pos", Text),
+            opt("rot", Text),
+            opt("lookat", Text),
+            optd("next", Boolean, "true"),
+        ],
         Allow,
         "set the 3D camera's position, rotation, or look-at target",
     ),
     tag(
         "3d_helper",
-        &[opt("name", Text), opt("grid", Text), opt("axes", Text), optd("next", Boolean, "true")],
+        &[
+            opt("name", Text),
+            opt("grid", Text),
+            opt("axes", Text),
+            optd("next", Boolean, "true"),
+        ],
         Allow,
         "add a grid and axes helper overlay for scene calibration",
     ),
-    tag("3d_canvas_show", &[optd("time", Number, "1000")], Deny, "fade the 3D canvas back into view"),
-    tag("3d_canvas_hide", &[optd("time", Number, "1000")], Deny, "fade the 3D canvas out of view"),
-    tag("3d_close", &[], Deny, "tear down the 3D scene; [3d_init] is required to use 3d_* again"),
-
+    tag(
+        "3d_canvas_show",
+        &[optd("time", Number, "1000")],
+        Deny,
+        "fade the 3D canvas back into view",
+    ),
+    tag(
+        "3d_canvas_hide",
+        &[optd("time", Number, "1000")],
+        Deny,
+        "fade the 3D canvas out of view",
+    ),
+    tag(
+        "3d_close",
+        &[],
+        Deny,
+        "tear down the 3D scene; [3d_init] is required to use 3d_* again",
+    ),
     // --- groups ----------------------------------------------------------
-    tag("3d_new_group", &[req("name", Text)], Deny, "create a new empty 3D group"),
+    tag(
+        "3d_new_group",
+        &[req("name", Text)],
+        Deny,
+        "create a new empty 3D group",
+    ),
     tag(
         "3d_add_group",
         &[
@@ -104,7 +176,6 @@ pub(super) const TAGS: &[TagSpec] = &[
         Allow,
         "add a 3D object to a group, optionally cloning it first",
     ),
-
     // --- model / primitive creation --------------------------------------
     tag(
         "3d_box_new",
@@ -373,11 +444,17 @@ pub(super) const TAGS: &[TagSpec] = &[
         Allow,
         "wrap a 360 video around the scene as an animated background",
     ),
-
     // --- model / lifecycle modification -----------------------------------
     tag(
         "3d_model_mod",
-        &[req("name", Text), opt("type", Text), opt("scale", Text), opt("pos", Text), opt("rot", Text), optd("next", Boolean, "true")],
+        &[
+            req("name", Text),
+            opt("type", Text),
+            opt("scale", Text),
+            opt("pos", Text),
+            opt("rot", Text),
+            optd("next", Boolean, "true"),
+        ],
         Allow,
         "change a loaded 3D model's position, rotation, or scale",
     ),
@@ -473,7 +550,13 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "3d_clone",
-        &[req("name", Text), optd("time", Number, "500"), opt("scale", Text), opt("pos", Text), opt("rot", Text)],
+        &[
+            req("name", Text),
+            optd("time", Number, "500"),
+            opt("scale", Text),
+            opt("pos", Text),
+            opt("rot", Text),
+        ],
         Allow,
         "duplicate a 3D object into a new instance",
     ),
@@ -499,7 +582,12 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "3d_hide",
-        &[req("name", Text), optd("time", Number, "500"), optd("next", Boolean, "true"), optd("wait", Boolean, "true")],
+        &[
+            req("name", Text),
+            optd("time", Number, "500"),
+            optd("next", Boolean, "true"),
+            optd("wait", Boolean, "true"),
+        ],
         Deny,
         "hide a shown 3D object without deleting its definition",
     ),
@@ -511,12 +599,20 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "3d_delete",
-        &[req("name", Text), optd("scene", Boolean, "false"), optd("next", Boolean, "true")],
+        &[
+            req("name", Text),
+            optd("scene", Boolean, "false"),
+            optd("next", Boolean, "true"),
+        ],
         Deny,
         "delete a 3D object's definition entirely",
     ),
-    tag("3d_delete_all", &[], Deny, "delete every 3D object's definition"),
-
+    tag(
+        "3d_delete_all",
+        &[],
+        Deny,
+        "delete every 3D object's definition",
+    ),
     // --- animation ---------------------------------------------------------
     tag(
         "3d_anim",
@@ -545,7 +641,6 @@ pub(super) const TAGS: &[TagSpec] = &[
         Deny,
         "stop a 3D object's running animation",
     ),
-
     // --- sound / video -------------------------------------------------
     tag(
         "3d_sound",
@@ -565,13 +660,22 @@ pub(super) const TAGS: &[TagSpec] = &[
     ),
     tag(
         "3d_sound_play",
-        &[req("name", Text), opt("volume", Number), optd("loop", Boolean, "false"), optd("next", Boolean, "true")],
+        &[
+            req("name", Text),
+            opt("volume", Number),
+            optd("loop", Boolean, "false"),
+            optd("next", Boolean, "true"),
+        ],
         Deny,
         "play a defined 3D sound",
     ),
     tag(
         "3d_sound_stop",
-        &[req("name", Text), opt("volume", Number), optd("next", Boolean, "true")],
+        &[
+            req("name", Text),
+            opt("volume", Number),
+            optd("next", Boolean, "true"),
+        ],
         Deny,
         "stop a playing 3D sound",
     ),
@@ -590,7 +694,6 @@ pub(super) const TAGS: &[TagSpec] = &[
         Allow,
         "play a video texture on a 3D object, or stop it if already playing",
     ),
-
     // --- events ----------------------------------------------------------
     tag(
         "3d_event",
@@ -602,15 +705,23 @@ pub(super) const TAGS: &[TagSpec] = &[
             opt("target", Label),
             opt("distance", Number),
             opt("ground", Text),
-            optd("mode", Enum(&["click", "collision", "contextmenu"]), "click"),
+            optd(
+                "mode",
+                Enum(&["click", "collision", "contextmenu"]),
+                "click",
+            ),
         ],
         Deny,
         "define a jump or eval event fired when a 3D object is clicked",
     ),
-    tag("3d_event_delete", &[req("name", Text)], Deny, "remove a 3D object's defined event"),
+    tag(
+        "3d_event_delete",
+        &[req("name", Text)],
+        Deny,
+        "remove a 3D object's defined event",
+    ),
     tag("3d_event_start", &[], Deny, "start accepting 3D events"),
     tag("3d_event_stop", &[], Deny, "stop accepting 3D events"),
-
     // --- debug tools -------------------------------------------------------
     tag(
         "3d_debug",
@@ -651,17 +762,26 @@ pub(super) const TAGS: &[TagSpec] = &[
         Deny,
         "open an interactive drag-and-drop inspector for the 3D camera",
     ),
-
     // --- gyro / FPS control --------------------------------------------
     tag(
         "3d_gyro",
-        &[optd("max_x", Number, "30"), optd("max_y", Number, "30"), optd("mode", Enum(&["rotation", "position"]), "rotation"), optd("next", Boolean, "true")],
+        &[
+            optd("max_x", Number, "30"),
+            optd("max_y", Number, "30"),
+            optd("mode", Enum(&["rotation", "position"]), "rotation"),
+            optd("next", Boolean, "true"),
+        ],
         Deny,
         "steer the camera with device tilt or mouse position",
     ),
     tag(
         "3d_gyro_stop",
-        &[optd("max_x", Number, "30"), optd("max_y", Number, "30"), optd("frame", Number, "1"), optd("next", Boolean, "true")],
+        &[
+            optd("max_x", Number, "30"),
+            optd("max_y", Number, "30"),
+            optd("frame", Number, "1"),
+            optd("next", Boolean, "true"),
+        ],
         Deny,
         "stop gyro-driven camera control",
     ),
@@ -671,6 +791,16 @@ pub(super) const TAGS: &[TagSpec] = &[
         Deny,
         "enable first-person keyboard/joystick movement control",
     ),
-    tag("fps_control_start", &[], Deny, "resume first-person movement control"),
-    tag("fps_control_stop", &[], Deny, "pause first-person movement control"),
+    tag(
+        "fps_control_start",
+        &[],
+        Deny,
+        "resume first-person movement control",
+    ),
+    tag(
+        "fps_control_stop",
+        &[],
+        Deny,
+        "pause first-person movement control",
+    ),
 ];

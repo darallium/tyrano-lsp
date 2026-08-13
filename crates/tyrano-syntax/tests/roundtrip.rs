@@ -14,7 +14,10 @@ fn corpus() -> Vec<(String, String)> {
             let path = e.ok()?.path();
             (path.extension()? == "ks").then(|| {
                 let text = std::fs::read_to_string(&path).expect("readable corpus file");
-                (path.file_name().unwrap().to_string_lossy().into_owned(), text)
+                (
+                    path.file_name().unwrap().to_string_lossy().into_owned(),
+                    text,
+                )
             })
         })
         .collect();
@@ -29,11 +32,19 @@ fn corpus_roundtrips_byte_exact() {
         let parsed = parse(&text);
         assert_eq!(parsed.to_source(), text, "{name}: round-trip failed");
         for opts in [
-            ParseOptions { loose_endscript_termination: true },
-            ParseOptions { loose_endscript_termination: false },
+            ParseOptions {
+                loose_endscript_termination: true,
+            },
+            ParseOptions {
+                loose_endscript_termination: false,
+            },
         ] {
             let parsed = parse_with_options(&text, &opts);
-            assert_eq!(parsed.to_source(), text, "{name}: round-trip failed ({opts:?})");
+            assert_eq!(
+                parsed.to_source(),
+                text,
+                "{name}: round-trip failed ({opts:?})"
+            );
         }
     }
 }
@@ -78,7 +89,11 @@ fn corpus_incremental_edits_match_full_parse() {
             );
             let inc = old.reparse(&new, &[edit]);
             let full = parse(&new);
-            assert_eq!(inc.green(), full.green(), "{name}: incremental tree diverged");
+            assert_eq!(
+                inc.green(),
+                full.green(),
+                "{name}: incremental tree diverged"
+            );
             assert_eq!(
                 inc.diagnostics(),
                 full.diagnostics(),

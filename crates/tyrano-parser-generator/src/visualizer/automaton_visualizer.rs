@@ -11,7 +11,7 @@ pub fn generate_automaton_dot(states: &[LRState], grammar: &GrammarParser) -> St
     dot.push_str("    rankdir=LR;\n");
     dot.push_str("    node [shape=box, fontname=\"Courier New\", fontsize=10];\n");
     dot.push_str("    edge [fontname=\"Helvetica\", fontsize=9];\n");
-    dot.push_str("\n");
+    dot.push('\n');
 
     // Mark initial state
     dot.push_str("    start [shape=point, width=0.1];\n");
@@ -23,7 +23,7 @@ pub fn generate_automaton_dot(states: &[LRState], grammar: &GrammarParser) -> St
         dot.push_str(&format!("    {} [label=<{}>];\n", state.id, label));
     }
 
-    dot.push_str("\n");
+    dot.push('\n');
 
     // Generate edges for transitions
     for state in states {
@@ -100,7 +100,7 @@ fn format_lr_item(item: &crate::state::LRItem) -> String {
             result.push(' ');
         }
         if item.dot_position >= item.production.rhs.len() {
-            result.push_str("•");
+            result.push('•');
         }
     }
 

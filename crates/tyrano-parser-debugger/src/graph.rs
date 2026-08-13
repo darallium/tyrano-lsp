@@ -1,12 +1,9 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use std::collections::HashMap;
 
 use tyrano_parser_generator::{
-    generator::TableGenerator,
-    grammar::GrammarParser,
-    state::StateMachine,
-    visualizer,
+    generator::TableGenerator, grammar::GrammarParser, state::StateMachine, visualizer,
 };
 
 pub fn run_graph(output_dir: &str, automaton_only: bool) -> Result<(), String> {

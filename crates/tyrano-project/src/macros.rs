@@ -153,9 +153,7 @@ mod tests {
             .build();
 
         let registry = project_macros(&db);
-        let library = db
-            .file(&path("data/others/plugin/demo/init.ks"))
-            .unwrap();
+        let library = db.file(&path("data/others/plugin/demo/init.ks")).unwrap();
         assert_eq!(
             registry.get("plugin_command"),
             Some(&MacroDef {

@@ -15,7 +15,7 @@ pub fn generate_table_dot(
     dot.push_str("digraph ParseTable {\n");
     dot.push_str("    rankdir=TB;\n");
     dot.push_str("    node [shape=plaintext];\n");
-    dot.push_str("\n");
+    dot.push('\n');
 
     // Collect all states
     let mut states: BTreeSet<usize> = BTreeSet::new();

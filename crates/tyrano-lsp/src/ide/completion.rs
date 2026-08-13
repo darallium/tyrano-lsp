@@ -44,11 +44,17 @@ enum Context {
     /// Typing a tag name (after `[` or a line-leading `@`).
     TagName,
     /// Typing a parameter name inside tag `tag`.
-    ParamName { tag: String },
+    ParamName {
+        tag: String,
+    },
     /// Typing the value of `param` inside tag `tag`; `params` holds the
     /// already-complete `name=value` pairs of the same tag (for
     /// `storage=`-dependent label completion).
-    ParamValue { tag: String, param: String, params: Vec<(String, String)> },
+    ParamValue {
+        tag: String,
+        param: String,
+        params: Vec<(String, String)>,
+    },
     None,
 }
 
@@ -122,7 +128,7 @@ fn param_completions(db: &dyn ProjectDb, file: File, tag: &str) -> Vec<Completio
             out.push(CompletionItem {
                 label: p.name.to_string(),
                 kind: CompletionKind::Param,
-                detail: Some(format!("{requirement}")),
+                detail: Some(requirement.to_string()),
             });
         }
     } else {
@@ -149,8 +155,12 @@ fn value_completions(
     param: &str,
     params: &[(String, String)],
 ) -> Vec<CompletionItem> {
-    let Some(spec) = builtin_registry().get(tag) else { return Vec::new() };
-    let Some(param) = spec.param(param) else { return Vec::new() };
+    let Some(spec) = builtin_registry().get(tag) else {
+        return Vec::new();
+    };
+    let Some(param) = spec.param(param) else {
+        return Vec::new();
+    };
     let model = SemanticModel::new(db, file);
     let settings = db.project().settings(db);
 
@@ -271,7 +281,11 @@ fn context(text: &str, offset: usize) -> Context {
 
     let params = complete_params(&words[1..words.len() - 1]);
     match split_param(&last) {
-        Some((name, _)) => Context::ParamValue { tag, param: name.to_string(), params },
+        Some((name, _)) => Context::ParamValue {
+            tag,
+            param: name.to_string(),
+            params,
+        },
         None => Context::ParamName { tag },
     }
 }
@@ -297,7 +311,11 @@ fn tag_start(prefix: &str) -> Option<usize> {
             '[' if quote.is_none() => open = Some(i + 1),
             ']' if quote.is_none() => {
                 // Closing the inline tag; an `@` line stays open.
-                open = if prefix.starts_with('@') { Some(1) } else { None };
+                open = if prefix.starts_with('@') {
+                    Some(1)
+                } else {
+                    None
+                };
             }
             _ => {}
         }
@@ -350,7 +368,11 @@ fn complete_params(words: &[(String, usize)]) -> Vec<(String, String)> {
 /// Splits one word at its first `=`, if it has one.
 fn split_param(word: &str) -> Option<(&str, &str)> {
     let (name, value) = word.split_once('=')?;
-    if name.is_empty() { None } else { Some((name, value)) }
+    if name.is_empty() {
+        None
+    } else {
+        Some((name, value))
+    }
 }
 
 /// Strips one layer of (possibly unclosed) quotes.
@@ -382,11 +404,15 @@ mod tests {
         assert_eq!(context("@ju", 3), Context::TagName);
         assert_eq!(
             context("[jump ", 6),
-            Context::ParamName { tag: "jump".to_string() }
+            Context::ParamName {
+                tag: "jump".to_string()
+            }
         );
         assert_eq!(
             context("[jump tar", 9),
-            Context::ParamName { tag: "jump".to_string() }
+            Context::ParamName {
+                tag: "jump".to_string()
+            }
         );
         assert_eq!(
             context("[jump target=", 13),
@@ -408,7 +434,12 @@ mod tests {
         assert_eq!(context("plain text", 5), Context::None);
         // A closed inline tag on an @ line never happens, but a closed
         // bracket pair inside an @ line stays in the tag.
-        assert_eq!(context("@jump ", 6), Context::ParamName { tag: "jump".to_string() });
+        assert_eq!(
+            context("@jump ", 6),
+            Context::ParamName {
+                tag: "jump".to_string()
+            }
+        );
     }
 
     #[test]
@@ -424,7 +455,13 @@ mod tests {
         assert!(names.contains(&"fancy"), "{names:?}");
         let fancy = items.iter().find(|i| i.label == "fancy").unwrap();
         assert_eq!(fancy.kind, CompletionKind::Macro);
-        assert!(fancy.detail.as_deref().unwrap().contains("data/scenario/b.ks"));
+        assert!(
+            fancy
+                .detail
+                .as_deref()
+                .unwrap()
+                .contains("data/scenario/b.ks")
+        );
     }
 
     #[test]
@@ -445,11 +482,7 @@ mod tests {
         assert!(labels(&items).contains(&"custom_tag"));
 
         let param_at = source.find("[custom_tag ").unwrap() + "[custom_tag ".len();
-        let params = completions(
-            &db,
-            f,
-            TextSize::new(u32::try_from(param_at).unwrap()),
-        );
+        let params = completions(&db, f, TextSize::new(u32::try_from(param_at).unwrap()));
         assert!(labels(&params).contains(&"cond"));
     }
 
@@ -502,9 +535,15 @@ mod tests {
             .asset(AssetKind::BgImage, "room.jpg")
             .asset(AssetKind::Image, "face.png")
             .build();
-        let f = db.file(&ProjectPath::new("data/scenario/a.ks").unwrap()).unwrap();
+        let f = db
+            .file(&ProjectPath::new("data/scenario/a.ks").unwrap())
+            .unwrap();
         let items = completions(&db, f, offset(&db, f, "storage=", 8));
-        assert_eq!(labels(&items), ["room.jpg"], "bg only offers bgimage assets");
+        assert_eq!(
+            labels(&items),
+            ["room.jpg"],
+            "bg only offers bgimage assets"
+        );
     }
 
     #[test]

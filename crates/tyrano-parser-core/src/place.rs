@@ -162,11 +162,26 @@ struct Chain {
 /// Recursively visits `node`, emitting the outermost place chains and then
 /// recursing only where further places can hide (dynamic index keys and, for
 /// non-chain nodes, all children).
-fn collect_node(node: &SyntaxNode, anchor: TextSize, out: &mut Vec<(Place, TextRange, AccessKind)>) {
+fn collect_node(
+    node: &SyntaxNode,
+    anchor: TextSize,
+    out: &mut Vec<(Place, TextRange, AccessKind)>,
+) {
     if let Some(chain) = build_chain(node) {
         let range = node.trimmed_range() + anchor;
-        let access = if is_write_lhs(node) { AccessKind::Write } else { AccessKind::Read };
-        out.push((Place { root: chain.root, path: chain.path }, range, access));
+        let access = if is_write_lhs(node) {
+            AccessKind::Write
+        } else {
+            AccessKind::Read
+        };
+        out.push((
+            Place {
+                root: chain.root,
+                path: chain.path,
+            },
+            range,
+            access,
+        ));
         // The path is emitted as one place, but a dynamic key like the `f.i`
         // in `f.a[f.i]` is itself an access — recurse into those subtrees.
         for key in &chain.dynamic_keys {
@@ -190,7 +205,11 @@ fn build_chain(node: &SyntaxNode) -> Option<Chain> {
                 return None;
             }
             let root = PlaceRoot::from_ident(ident.text())?;
-            Some(Chain { root, path: Vec::new(), dynamic_keys: Vec::new() })
+            Some(Chain {
+                root,
+                path: Vec::new(),
+                dynamic_keys: Vec::new(),
+            })
         }
         SyntaxKind::FIELD_EXPR => {
             let base = node.first_child()?;
@@ -367,7 +386,10 @@ mod tests {
         let (outer, outer_range, outer_access) = &out[0];
         assert_eq!(outer.path, vec![field("a"), PathSeg::Dynamic, field("b")]);
         assert_eq!(*outer_access, AccessKind::Read);
-        assert_eq!(*outer_range, TextRange::new(TextSize::new(0), TextSize::new(10)));
+        assert_eq!(
+            *outer_range,
+            TextRange::new(TextSize::new(0), TextSize::new(10))
+        );
         assert_eq!(outer.render(), "f.a[*].b");
 
         // Inner place from the dynamic key: f.i, Read.
@@ -375,7 +397,10 @@ mod tests {
         assert_eq!(inner.root, PlaceRoot::GameVar);
         assert_eq!(inner.path, vec![field("i")]);
         assert_eq!(*inner_access, AccessKind::Read);
-        assert_eq!(*inner_range, TextRange::new(TextSize::new(4), TextSize::new(7)));
+        assert_eq!(
+            *inner_range,
+            TextRange::new(TextSize::new(4), TextSize::new(7))
+        );
     }
 
     #[test]
@@ -411,7 +436,10 @@ mod tests {
         // ...so collect_places must add the anchor to make them absolute.
         let out = places("f.hero.hp", 100);
         assert_eq!(out.len(), 1);
-        assert_eq!(out[0].1, TextRange::new(TextSize::new(100), TextSize::new(109)));
+        assert_eq!(
+            out[0].1,
+            TextRange::new(TextSize::new(100), TextSize::new(109))
+        );
     }
 
     #[test]

@@ -23,12 +23,18 @@ impl Session {
     pub fn open(workspace: &Path) -> io::Result<Session> {
         let root = find_project_root(workspace);
         let metadata = load_project(&root)?;
-        Ok(Session { root, db: ProjectDatabase::new(metadata) })
+        Ok(Session {
+            root,
+            db: ProjectDatabase::new(metadata),
+        })
     }
 
     /// An empty session rooted at `root` (tests, projects yet to exist).
     pub fn empty(root: PathBuf) -> Session {
-        Session { root, db: ProjectDatabase::empty() }
+        Session {
+            root,
+            db: ProjectDatabase::empty(),
+        }
     }
 
     pub fn db(&self) -> &ProjectDatabase {
@@ -67,7 +73,9 @@ impl Session {
     /// Reverts a file to its on-disk state (didClose), or marks it deleted
     /// when it no longer exists on disk.
     pub fn revert_to_disk(&mut self, abs: &Path) {
-        let Some(path) = self.project_path(abs) else { return };
+        let Some(path) = self.project_path(abs) else {
+            return;
+        };
         let change = match std::fs::read_to_string(abs) {
             Ok(text) => FileChange::Modified(text),
             Err(_) => FileChange::Deleted,
@@ -79,7 +87,9 @@ impl Session {
     /// mirrors the event kind (created/changed vs deleted); the disk is
     /// re-checked, so a stale event degrades gracefully.
     pub fn sync_from_disk(&mut self, abs: &Path, exists: bool) {
-        let Some(path) = self.project_path(abs) else { return };
+        let Some(path) = self.project_path(abs) else {
+            return;
+        };
         if !exists || !abs.exists() {
             self.db.apply_file_change(&path, FileChange::Deleted);
             return;
@@ -158,7 +168,10 @@ mod tests {
         let abs = tmp.0.join("data/scenario/a.ks");
         let file = session.file_at(&abs).expect("loaded file");
         assert_eq!(file.source(session.db()).text(session.db()), "*start\n");
-        assert_eq!(session.abs_path(&ProjectPath::new("data/scenario/a.ks").unwrap()), abs);
+        assert_eq!(
+            session.abs_path(&ProjectPath::new("data/scenario/a.ks").unwrap()),
+            abs
+        );
         assert_eq!(session.project_path(Path::new("/elsewhere/x.ks")), None);
     }
 
@@ -169,7 +182,11 @@ mod tests {
         assert_eq!(find_project_root(&tmp.0), tmp.0.join("game"));
 
         let session = Session::open(&tmp.0).unwrap();
-        assert!(session.file_at(&tmp.0.join("game/data/scenario/a.ks")).is_some());
+        assert!(
+            session
+                .file_at(&tmp.0.join("game/data/scenario/a.ks"))
+                .is_some()
+        );
     }
 
     #[test]
@@ -217,10 +234,7 @@ mod tests {
         );
         let mut session = Session::open(&tmp.0).unwrap();
         assert_eq!(
-            &*tyrano_semantic::project_javascript_tag_names(
-                session.db(),
-                session.db().project(),
-            ),
+            &*tyrano_semantic::project_javascript_tag_names(session.db(), session.db().project(),),
             &["before"]
         );
 
@@ -231,10 +245,7 @@ mod tests {
         );
         session.sync_from_disk(&abs, true);
         assert_eq!(
-            &*tyrano_semantic::project_javascript_tag_names(
-                session.db(),
-                session.db().project(),
-            ),
+            &*tyrano_semantic::project_javascript_tag_names(session.db(), session.db().project(),),
             &["after"]
         );
     }

@@ -8,5 +8,5 @@ pub mod grammar_meta;
 pub mod parser;
 pub mod tables;
 
-pub use cst::{CstNode, ProductionId, SymbolId, Span};
+pub use cst::{CstNode, ProductionId, Span, SymbolId};
 pub use parser::Parser;

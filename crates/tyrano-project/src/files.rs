@@ -81,7 +81,11 @@ impl Files {
 
     /// The already-known [`File`] for `path`, without creating one.
     pub fn get(&self, path: &ProjectPath) -> Option<File> {
-        self.inner.lock().expect("Files mutex poisoned").get(path).copied()
+        self.inner
+            .lock()
+            .expect("Files mutex poisoned")
+            .get(path)
+            .copied()
     }
 }
 
