@@ -36,8 +36,7 @@ Tyranoscript LSPは、ビジュアルノベルで使用されるスクリプト�
 鉞は自由に飛ばしてください．
 
 ## ライセンス
-このプロジェクトはMITライセンスの下でライセンスされています。詳細は[LICENSE](LICENSE)ファイルをご覧ください。
-
-This project uses the tyrano.tmLanguage.json file from https://github.com/orukRed/tyranosyntax, licensed under the MIT License.
+このプロジェクトはMPL-2.0ライセンスの下でライセンスされています。詳細は[LICENSE](LICENSE)ファイルをご覧ください。
+なお，リワーク後の初期バージョンにはLICENSEファイルがありませんが，本記載のあるコミットから遡及して適用するものとします．
 
 
