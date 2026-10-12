@@ -3,7 +3,7 @@
   "displayName": "Tyranoscript-LSP",
   "description": "Language support for TyranoScript (.ks) visual-novel scenario files, powered by the tyrano-lsp language server.",
   "publisher": "darallium",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "license": "MIT",
   "private": false,
   "repository": {

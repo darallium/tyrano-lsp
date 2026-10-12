@@ -1,0 +1,2 @@
+# Fixture must keep its CRLF line endings byte-for-byte.
+crates/tyrano-syntax/tests/data/valid/crlf.ks -text
