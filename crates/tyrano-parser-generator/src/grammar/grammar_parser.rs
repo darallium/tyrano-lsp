@@ -49,17 +49,17 @@ impl GrammarParser {
                     if parts.len() >= 2 {
                         self.start_symbol = Symbol::non_terminal(parts[1]);
                     }
-                } else if line.starts_with("%token") {
-                    let tokens = line[6..].trim();
+                } else if let Some(rest) = line.strip_prefix("%token") {
+                    let tokens = rest.trim();
                     for token in tokens.split_whitespace() {
                         self.terminals.insert(Symbol::terminal(token));
                     }
                 }
             } else {
                 // Parse production rules
-                if line.ends_with(':') {
+                if let Some(lhs) = line.strip_suffix(':') {
                     // Handle "rule_name:" format
-                    let lhs = line[..line.len() - 1].trim();
+                    let lhs = lhs.trim();
                     current_lhs = Some(Symbol::non_terminal(lhs));
                     self.non_terminals.insert(Symbol::non_terminal(lhs));
                 } else if line.starts_with('|') || line.starts_with(':') {
@@ -69,12 +69,11 @@ impl GrammarParser {
                     }
 
                     if let Some(ref lhs) = current_lhs {
-                        let rhs_str = if line.starts_with('|') {
-                            &line[1..]
-                        } else {
-                            &line[1..]
-                        }
-                        .trim();
+                        let rhs_str = line
+                            .strip_prefix('|')
+                            .or_else(|| line.strip_prefix(':'))
+                            .expect("RHS lines start with '|' or ':'")
+                            .trim();
 
                         let rhs = self.parse_rhs(rhs_str)?;
                         let production = Rc::new(Production::new(production_id, lhs.clone(), rhs));

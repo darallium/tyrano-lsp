@@ -125,6 +125,8 @@
 | `tyranoscript.server.path` | `""` | `tyrano-lsp` 実行ファイルの絶対パス。空の場合は自動検出します。 |
 | `tyranoscript.trace.server` | `off` | VS Code と言語サーバー間の通信ログレベル（`off` / `messages` / `verbose`）。不具合報告時に便利です。 |
 | `tyranoscript.javascript.navigation.enabled` | `true` | `data/**/*.js` 内でもTyranoScriptの定義移動・参照検索を有効にします。他のJavaScript拡張と競合する場合は無効化できます。 |
+| `tyranoscript.diagnostics.nonHexColor` | `default` | `color=white` のような16進以外の色指定に対する診断の重要度（`error` / `warning` / `note` / `default`）。`default` は現在 `note` です。 |
+| `tyranoscript.diagnostics.bareLabelTarget` | `default` | 先頭の `*` を省略したラベル指定に対する診断の重要度（`error` / `warning` / `note` / `default`）。`default` は現在 `note` です。 |
 
 ---
 

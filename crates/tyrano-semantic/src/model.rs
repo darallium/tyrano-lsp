@@ -41,7 +41,7 @@ pub enum TagResolution {
     /// A file-local or project-wide macro.
     Macro(MacroDef),
     /// A custom tag registered by reachable plugin JavaScript.
-    Plugin,
+    Plugin(crate::JsTagSpec),
     Unknown,
 }
 
@@ -120,13 +120,12 @@ impl<'db> SemanticModel<'db> {
         }
         match self.resolve_macro(name) {
             Some(def) => TagResolution::Macro(def),
-            None if crate::project_javascript_tag_names(self.db, self.db.project())
+            None => crate::project_javascript_tag_registrations(self.db, self.db.project())
                 .iter()
-                .any(|known| known == name) =>
-            {
-                TagResolution::Plugin
-            }
-            None => TagResolution::Unknown,
+                .find(|registration| registration.name == name)
+                .map_or(TagResolution::Unknown, |registration| {
+                    TagResolution::Plugin(registration.spec.clone())
+                }),
         }
     }
 
@@ -145,6 +144,29 @@ impl<'db> SemanticModel<'db> {
             };
             (index.contains(kind, &path) || has_parent && index.contains_any(&path)).then_some(path)
         })
+    }
+
+    /// Resolves an asset using Tyrano's `folder=` convention. Bare folder
+    /// names are relative to `data/`; `data/...` and `tyrano/...` are already
+    /// project-relative. Namespace membership is intentionally not required
+    /// because engine system images live outside configured asset roots.
+    pub fn resolve_asset_in_folder(&self, folder: &str, name: &str) -> Option<ProjectPath> {
+        let folder = folder.trim_matches(['/', '\\']);
+        let root = if folder.starts_with("data/") || folder.starts_with("tyrano/") {
+            ProjectPath::new(folder).ok()?
+        } else {
+            ProjectPath::new(format!("data/{folder}")).ok()?
+        };
+        let path = if name.replace('\\', "/").split('/').any(|part| part == "..") {
+            root.resolve_relative(name).ok()?
+        } else {
+            root.join(name).ok()?
+        };
+        self.db
+            .project()
+            .asset_index(self.db)
+            .contains_any(&path)
+            .then_some(path)
     }
 
     /// A scenario file by raw storage name.

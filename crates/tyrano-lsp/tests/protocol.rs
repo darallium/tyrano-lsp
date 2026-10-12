@@ -101,15 +101,14 @@ impl TestServer {
     /// arrives, returning its diagnostics array.
     fn wait_diagnostics(&self, uri: &lsp_types::Url) -> Vec<Value> {
         loop {
-            if let Message::Notification(n) = self.recv() {
-                if n.method == lsp_types::notification::PublishDiagnostics::METHOD
-                    && n.params["uri"] == json!(uri)
-                {
-                    return n.params["diagnostics"]
-                        .as_array()
-                        .cloned()
-                        .unwrap_or_default();
-                }
+            if let Message::Notification(n) = self.recv()
+                && n.method == lsp_types::notification::PublishDiagnostics::METHOD
+                && n.params["uri"] == json!(uri)
+            {
+                return n.params["diagnostics"]
+                    .as_array()
+                    .cloned()
+                    .unwrap_or_default();
             }
         }
     }

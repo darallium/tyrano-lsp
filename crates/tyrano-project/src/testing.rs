@@ -72,6 +72,15 @@ impl ProjectBuilder {
         self
     }
 
+    /// Registers an arbitrary project-relative resource outside the standard
+    /// asset roots.
+    pub fn resource(mut self, path: &str) -> ProjectBuilder {
+        self.metadata
+            .project_files
+            .insert(ProjectPath::new(path).expect("valid test resource path"));
+        self
+    }
+
     /// Instantiates the database.
     pub fn build(self) -> ProjectDatabase {
         ProjectDatabase::new(self.metadata)

@@ -1244,6 +1244,7 @@ dependencies = [
  "oxc_parser",
  "oxc_semantic",
  "oxc_span",
+ "oxc_syntax",
 ]
 
 [[package]]
@@ -1265,6 +1266,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tyrano-db",
+ "tyrano-js-analysis",
  "tyrano-module-resolver",
  "tyrano-parser-core",
  "tyrano-project",

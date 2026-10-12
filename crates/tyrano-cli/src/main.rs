@@ -64,6 +64,20 @@ enum Command {
         /// Print every diagnostic with its project-relative file path.
         #[arg(long)]
         diagnostics: bool,
+        /// Severity for Tyrano-compatible non-hex colors.
+        #[arg(
+            long,
+            default_value = "default",
+            value_parser = ["error", "warning", "note", "default"]
+        )]
+        non_hex_color: String,
+        /// Severity for Tyrano-compatible label targets without a leading `*`.
+        #[arg(
+            long,
+            default_value = "default",
+            value_parser = ["error", "warning", "note", "default"]
+        )]
+        bare_label_target: String,
     },
 }
 
@@ -196,10 +210,17 @@ fn run(cli: &Cli, started: Instant) -> Result<ExitCode, String> {
             root,
             max_ms,
             diagnostics: print_diagnostics,
+            non_hex_color,
+            bare_label_target,
         } => {
             use tyrano_project::ProjectDb as _;
 
-            let metadata = tyrano_project::load_project(root)
+            let mut settings = tyrano_project::ProjectSettings::default();
+            settings.compatibility_diagnostics.non_hex_color =
+                diagnostic_level(non_hex_color).expect("clap validates diagnostic levels");
+            settings.compatibility_diagnostics.bare_label_target =
+                diagnostic_level(bare_label_target).expect("clap validates diagnostic levels");
+            let metadata = tyrano_project::load_project_with(root, settings)
                 .map_err(|e| format!("cannot load project {}: {e}", root.display()))?;
             let db = tyrano_project::ProjectDatabase::new(metadata);
             let results = tyrano_semantic::check_project(&db);
@@ -213,10 +234,11 @@ fn run(cli: &Cli, started: Instant) -> Result<ExitCode, String> {
                     let path = file.path(&db);
                     for diagnostic in file_diagnostics.iter() {
                         println!(
-                            "{}:{}..{} {} {}",
+                            "{}:{}..{} {} {} {}",
                             path,
                             u32::from(diagnostic.range.start()),
                             u32::from(diagnostic.range.end()),
+                            severity_name(diagnostic.severity),
                             diagnostic.code,
                             diagnostic.message,
                         );
@@ -317,6 +339,24 @@ fn run(cli: &Cli, started: Instant) -> Result<ExitCode, String> {
             }
             Ok(ExitCode::SUCCESS)
         }
+    }
+}
+
+fn diagnostic_level(value: &str) -> Option<tyrano_project::DiagnosticLevel> {
+    Some(match value {
+        "error" => tyrano_project::DiagnosticLevel::Error,
+        "warning" => tyrano_project::DiagnosticLevel::Warning,
+        "note" => tyrano_project::DiagnosticLevel::Note,
+        "default" => tyrano_project::DiagnosticLevel::Default,
+        _ => return None,
+    })
+}
+
+fn severity_name(severity: Severity) -> &'static str {
+    match severity {
+        Severity::Error => "error",
+        Severity::Warning => "warning",
+        Severity::Info => "note",
     }
 }
 

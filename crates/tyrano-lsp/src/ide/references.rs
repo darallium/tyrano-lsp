@@ -101,7 +101,7 @@ fn ref_target(db: &dyn ProjectDb, file: File, offset: TextSize) -> Option<RefTar
         }
         CursorTarget::Tag { name, .. } => match model.resolve_tag(&name) {
             TagResolution::Macro(def) => Some(RefTarget::Macro(def.file, def.name)),
-            TagResolution::Plugin => Some(RefTarget::PluginTag(name)),
+            TagResolution::Plugin(_) => Some(RefTarget::PluginTag(name)),
             _ => None,
         },
         _ => None,
@@ -234,7 +234,7 @@ fn collect_in_file(
         }
         RefTarget::PluginTag(name) => {
             let model = SemanticModel::new(db, scenario);
-            if !matches!(model.resolve_tag(name), TagResolution::Plugin) {
+            if !matches!(model.resolve_tag(name), TagResolution::Plugin(_)) {
                 return;
             }
             let module = tyrano_db::parsed_module(db, scenario.source(db));

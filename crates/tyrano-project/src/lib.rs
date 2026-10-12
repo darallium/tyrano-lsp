@@ -25,7 +25,10 @@ pub use files::{File, FileStatus, Files};
 pub use loader::{load_project, load_project_with};
 pub use macros::{MacroDef, MacroRegistry, macro_names, macro_registry, project_macros};
 pub use path::{ProjectPath, ProjectPathError};
-pub use project::{AssetIndex, AssetKind, Project, ProjectMetadata, ProjectSettings};
+pub use project::{
+    AssetIndex, AssetKind, CompatibilityDiagnostics, DiagnosticLevel, Project, ProjectMetadata,
+    ProjectSettings,
+};
 pub use registry::{ExtraParams, ParamSpec, TagRegistry, TagSpec, ValueKind, builtin_registry};
 
 use salsa::Setter as _;
@@ -84,7 +87,7 @@ impl ProjectDatabase {
             Vec::new(),
             Vec::new(),
             Vec::new(),
-            AssetIndex::new(metadata.assets),
+            AssetIndex::new(metadata.assets, metadata.project_files),
         );
         db.project = Some(project);
         for (path, text) in metadata.scenario_sources {
@@ -196,17 +199,20 @@ impl ProjectDatabase {
             .filter(|(_, roots)| roots.iter().any(|r| path.strip_prefix(r).is_some()))
             .map(|(&kind, _)| kind)
             .collect();
-        if !asset_kinds.is_empty() {
-            let mut index = project.asset_index(self).clone();
-            for kind in asset_kinds {
-                if present {
-                    index.insert(kind, path.clone());
-                } else {
-                    index.remove(kind, path);
-                }
-            }
-            project.set_asset_index(self).to(index);
+        let mut index = project.asset_index(self).clone();
+        if present {
+            index.insert_file(path.clone());
+        } else {
+            index.remove_file(path);
         }
+        for kind in asset_kinds {
+            if present {
+                index.insert(kind, path.clone());
+            } else {
+                index.remove(kind, path);
+            }
+        }
+        project.set_asset_index(self).to(index);
     }
 }
 

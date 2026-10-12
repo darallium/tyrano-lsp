@@ -113,6 +113,10 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     traceOutputChannel: outputChannel,
     initializationOptions: {
       trace: config.get<string>("trace.server", "off"),
+      diagnostics: {
+        nonHexColor: config.get<string>("diagnostics.nonHexColor", "default"),
+        bareLabelTarget: config.get<string>("diagnostics.bareLabelTarget", "default"),
+      },
     },
   };
 
@@ -157,6 +161,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       if (
         event.affectsConfiguration("tyranoscript.server.path") ||
         event.affectsConfiguration("tyranoscript.trace.server") ||
+        event.affectsConfiguration("tyranoscript.diagnostics") ||
         event.affectsConfiguration("tyranoscript.javascript.navigation.enabled")
       ) {
         void restartServer(context);

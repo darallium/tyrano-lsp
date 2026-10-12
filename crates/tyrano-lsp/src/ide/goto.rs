@@ -59,7 +59,7 @@ pub fn goto_definition(db: &dyn ProjectDb, file: File, offset: TextSize) -> Vec<
             TagResolution::Macro(def) => macro_def_target(db, def.file, &def.name)
                 .map(|t| vec![t])
                 .unwrap_or_default(),
-            TagResolution::Plugin => project_javascript_tag_definitions(db, db.project(), &name)
+            TagResolution::Plugin(_) => project_javascript_tag_definitions(db, db.project(), &name)
                 .into_iter()
                 .map(|location| NavTarget {
                     path: location.file.path(db).clone(),

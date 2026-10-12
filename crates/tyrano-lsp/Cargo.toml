@@ -11,6 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 tyrano-db = { path = "../tyrano-db" }
+tyrano-js-analysis = { path = "../tyrano-js-analysis" }
 tyrano-module-resolver = { path = "../tyrano-module-resolver" }
 tyrano-parser-core = { path = "../tyrano-parser-core" }
 tyrano-project = { path = "../tyrano-project" }
