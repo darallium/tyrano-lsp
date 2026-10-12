@@ -25,6 +25,7 @@ pub fn load_project_with(root: &Path, settings: ProjectSettings) -> io::Result<P
         library_sources: Vec::new(),
         javascript_sources: Vec::new(),
         assets: Default::default(),
+        project_files: walk_root_sorted(root)?.into_iter().collect(),
     };
 
     for scenario_root in metadata.settings.scenario_roots.clone() {
@@ -98,6 +99,56 @@ fn walk_sorted(root: &Path, dir: &ProjectPath) -> io::Result<Vec<ProjectPath>> {
             let rel = current
                 .join(name)
                 .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
+            if entry.file_type()?.is_dir() {
+                pending.push(rel);
+            } else {
+                out.push(rel);
+            }
+        }
+    }
+    out.sort();
+    Ok(out)
+}
+
+/// All regular files below the project root. This complements namespace
+/// scans with engine-owned resources such as `tyrano/images/system/*`.
+fn walk_root_sorted(root: &Path) -> io::Result<Vec<ProjectPath>> {
+    let mut out = Vec::new();
+    let mut pending = Vec::new();
+    if !root.is_dir() {
+        return Ok(out);
+    }
+    for entry in std::fs::read_dir(root)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        let name = name.to_str().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("non-UTF-8 project path: {name:?}"),
+            )
+        })?;
+        let rel = ProjectPath::new(name)
+            .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
+        if entry.file_type()?.is_dir() {
+            pending.push(rel);
+        } else {
+            out.push(rel);
+        }
+    }
+    while let Some(dir) = pending.pop() {
+        let abs = root.join(dir.as_str());
+        for entry in std::fs::read_dir(abs)? {
+            let entry = entry?;
+            let name = entry.file_name();
+            let name = name.to_str().ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("non-UTF-8 file name under {dir}: {name:?}"),
+                )
+            })?;
+            let rel = dir
+                .join(name)
+                .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error.to_string()))?;
             if entry.file_type()?.is_dir() {
                 pending.push(rel);
             } else {

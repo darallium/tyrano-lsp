@@ -160,6 +160,9 @@ impl LRParser {
         AstNode::new_text(token.lexeme().into_owned(), false)
     }
 
+    // Reduction children use the same boxed representation as Scenario lines,
+    // allowing flattened lists to transfer ownership without re-boxing nodes.
+    #[allow(clippy::vec_box)]
     fn create_non_terminal_node(
         &self,
         production: &Production,

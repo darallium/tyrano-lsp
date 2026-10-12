@@ -309,17 +309,11 @@ impl Builder<'_> {
                 // `[chara_new name=…]` is a definition site, not a reference.
                 if name == "chara_new"
                     && let Some((chara, range)) = &name_param
-                        && !chara.is_empty() {
-                            let scope = self.current_scope();
-                            self.define(
-                                SymbolKind::Character,
-                                chara,
-                                node,
-                                *range,
-                                tag_range,
-                                scope,
-                            );
-                        }
+                    && !chara.is_empty()
+                {
+                    let scope = self.current_scope();
+                    self.define(SymbolKind::Character, chara, node, *range, tag_range, scope);
+                }
 
                 self.tag_sites.push(TagSite {
                     node,
@@ -476,24 +470,25 @@ impl Builder<'_> {
 
         if CHARA_REF_TAGS.contains(&site.name.as_str())
             && let Some((name, range)) = &site.name_param
-                && !name.is_empty() {
-                    // Unknown characters are recorded, not diagnosed: they
-                    // are routinely defined in another file.
-                    let resolution = match self.index.charas_by_name.get(name) {
-                        Some(&sym) => Resolution::Def(self.index.symbols[sym.index()].defs[0]),
-                        None => Resolution::Unknown,
-                    };
-                    self.index.use_def.push(
-                        Reference {
-                            kind: RefKind::CharacterRef,
-                            node: site.node,
-                            range: *range,
-                            name: name.clone(),
-                            resolution,
-                        },
-                        def_count,
-                    );
-                }
+            && !name.is_empty()
+        {
+            // Unknown characters are recorded, not diagnosed: they
+            // are routinely defined in another file.
+            let resolution = match self.index.charas_by_name.get(name) {
+                Some(&sym) => Resolution::Def(self.index.symbols[sym.index()].defs[0]),
+                None => Resolution::Unknown,
+            };
+            self.index.use_def.push(
+                Reference {
+                    kind: RefKind::CharacterRef,
+                    node: site.node,
+                    range: *range,
+                    name: name.clone(),
+                    resolution,
+                },
+                def_count,
+            );
+        }
     }
 
     fn resolve_jump(&mut self, site: &TagSite, def_count: usize) {

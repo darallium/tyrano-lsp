@@ -1210,14 +1210,14 @@ checksum = "bc7d623258602320d5c55d1bc22793b57daff0ec7efc270ea7d55ce1d5f5471c"
 
 [[package]]
 name = "tyrano-analysis"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "tyrano-syntax",
 ]
 
 [[package]]
 name = "tyrano-cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "clap",
  "tyrano-analysis",
@@ -1229,7 +1229,7 @@ dependencies = [
 
 [[package]]
 name = "tyrano-db"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "salsa",
  "tyrano-syntax",
@@ -1237,18 +1237,19 @@ dependencies = [
 
 [[package]]
 name = "tyrano-js-analysis"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "oxc_allocator",
  "oxc_ast",
  "oxc_parser",
  "oxc_semantic",
  "oxc_span",
+ "oxc_syntax",
 ]
 
 [[package]]
 name = "tyrano-lexer"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "thiserror",
@@ -1256,7 +1257,7 @@ dependencies = [
 
 [[package]]
 name = "tyrano-lsp"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "crossbeam-channel",
@@ -1265,6 +1266,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tyrano-db",
+ "tyrano-js-analysis",
  "tyrano-module-resolver",
  "tyrano-parser-core",
  "tyrano-project",
@@ -1274,7 +1276,7 @@ dependencies = [
 
 [[package]]
 name = "tyrano-module-resolver"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "salsa",
  "tyrano-db",
@@ -1283,14 +1285,14 @@ dependencies = [
 
 [[package]]
 name = "tyrano-parser"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "tyrano-lexer",
 ]
 
 [[package]]
 name = "tyrano-parser-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "salsa",
  "tyrano-db",
@@ -1299,7 +1301,7 @@ dependencies = [
 
 [[package]]
 name = "tyrano-parser-debugger"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "tyrano-lexer",
@@ -1309,7 +1311,7 @@ dependencies = [
 
 [[package]]
 name = "tyrano-parser-generator"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "log",
@@ -1320,7 +1322,7 @@ dependencies = [
 
 [[package]]
 name = "tyrano-project"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "salsa",
  "tyrano-db",
@@ -1330,7 +1332,7 @@ dependencies = [
 
 [[package]]
 name = "tyrano-semantic"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "salsa",
  "tyrano-db",
@@ -1343,7 +1345,7 @@ dependencies = [
 
 [[package]]
 name = "tyrano-syntax"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "tyrano-lexer",
  "tyrano-parser-generator",

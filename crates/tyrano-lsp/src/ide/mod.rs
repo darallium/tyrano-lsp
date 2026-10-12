@@ -9,6 +9,7 @@ mod completion;
 mod cursor;
 mod goto;
 mod hover;
+mod macro_call;
 mod references;
 mod symbols;
 

@@ -9,9 +9,10 @@ use std::sync::Arc;
 
 use tyrano_db::FileDiagnostic;
 use tyrano_js_analysis::{
-    EffectKind, OwnedJsFacts, PathSegment, SourceKind, VariableRoot, analyze,
+    EffectKind, JsTypeSet, JsValueExpr, OwnedJsFacts, PathSegment, SourceKind, VariablePath,
+    VariableRoot, analyze,
 };
-use tyrano_project::{File, Project, ProjectDb, ProjectPath};
+use tyrano_project::{File, Project, ProjectDb, ProjectPath, builtin_registry};
 use tyrano_syntax::SyntaxKind;
 use tyrano_syntax::ast::Param;
 use tyrano_syntax::diagnostics::Severity;
@@ -106,10 +107,18 @@ pub fn file_js_analysis(db: &dyn ProjectDb, file: File) -> Arc<FileJsAnalysis> {
             let Some((range, code, kind)) = parameter_region(&param, &tag_name, &param_name) else {
                 continue;
             };
+            let source_kind = match &kind {
+                JsRegionKind::Parameter { parameter, .. }
+                    if matches!(parameter.as_str(), "exp" | "preexp") =>
+                {
+                    SourceKind::Script
+                }
+                _ => SourceKind::Expression,
+            };
             regions.push(JsRegion {
                 kind,
                 range,
-                facts: analyze(&code, SourceKind::Expression),
+                facts: analyze(&code, source_kind),
             });
         }
     }
@@ -139,6 +148,20 @@ pub fn analyze_project_javascript(db: &dyn ProjectDb) -> Vec<(File, Arc<FileJsAn
 pub struct JsTagRegistration {
     pub name: String,
     pub location: JsSourceLocation,
+    pub spec: JsTagSpec,
+}
+
+/// Parameter information extracted from a `master_tag` implementation.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct JsTagSpec {
+    pub parameters: Vec<JsTagParameter>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct JsTagParameter {
+    pub name: String,
+    pub required: bool,
+    pub types: JsTypeSet,
 }
 
 /// Statically recognizable custom tag registrations in reachable plugin
@@ -153,6 +176,11 @@ pub fn project_javascript_tag_registrations(
     let mut registrations = Vec::new();
     let mut files = project.scenario_files(db).clone();
     files.extend(reachable_auxiliary_sources(db));
+    files.extend(project.javascript_files(db).iter().copied().filter(|file| {
+        ProjectPath::new("tyrano/plugins/kag")
+            .ok()
+            .is_some_and(|root| file.path(db).strip_prefix(&root).is_some())
+    }));
     files.sort_by(|a, b| a.path(db).cmp(b.path(db)));
     files.dedup();
 
@@ -191,6 +219,12 @@ pub fn project_javascript_tag_registrations(
                     })
                     .map_or(effect.selection, |candidate| candidate.selection);
                 registrations.push(JsTagRegistration {
+                    spec: javascript_tag_spec(
+                        region,
+                        &effect.path,
+                        &name,
+                        has_dynamic_registration,
+                    ),
                     name,
                     location: JsSourceLocation {
                         file,
@@ -227,16 +261,204 @@ pub fn project_javascript_tag_registrations(
     registrations.into()
 }
 
+fn javascript_tag_spec(
+    region: &JsRegion,
+    registration_path: &VariablePath,
+    tag_name: &str,
+    dynamic_registration: bool,
+) -> JsTagSpec {
+    let Some(prefix) = registration_prefix(registration_path, tag_name, dynamic_registration)
+    else {
+        return JsTagSpec::default();
+    };
+    let mut parameters: std::collections::BTreeMap<String, JsTagParameter> = Default::default();
+    let mut vital = HashSet::new();
+    let mut implementation_ranges = Vec::new();
+
+    for assignment in &region.facts.assignments {
+        if assignment.target.root != registration_path.root
+            || assignment.target.segments.len() < prefix.len()
+            || assignment.target.segments[..prefix.len()] != prefix[..]
+        {
+            continue;
+        }
+        let relative = &assignment.target.segments[prefix.len()..];
+        implementation_ranges.push(assignment.range);
+        if relative.is_empty() {
+            extract_tag_object(&assignment.value, &mut parameters, &mut vital);
+        } else if matches!(relative.first(), Some(PathSegment::Static(name)) if name == "pm") {
+            if relative.len() == 1 {
+                extract_pm_object(&assignment.value, &mut parameters);
+            } else if let Some(PathSegment::Static(name)) = relative.get(1) {
+                insert_parameter(&mut parameters, name, assignment.value.possible_types());
+            }
+        } else if matches!(relative.first(), Some(PathSegment::Static(name)) if name == "vital") {
+            extract_vital(&assignment.value, &mut vital);
+        }
+    }
+
+    for constraint in &region.facts.constraints {
+        if !implementation_ranges
+            .iter()
+            .any(|range| range.start <= constraint.range.start && range.end >= constraint.range.end)
+        {
+            continue;
+        }
+        let VariableRoot::Lexical { name, .. } = &constraint.path.root else {
+            continue;
+        };
+        if name != "pm" {
+            continue;
+        }
+        let Some(PathSegment::Static(parameter)) = constraint.path.segments.first() else {
+            continue;
+        };
+        insert_parameter(&mut parameters, parameter, constraint.expected);
+    }
+
+    for name in vital {
+        parameters
+            .entry(name.clone())
+            .and_modify(|parameter| parameter.required = true)
+            .or_insert(JsTagParameter {
+                name,
+                required: true,
+                types: JsTypeSet::UNKNOWN,
+            });
+    }
+    JsTagSpec {
+        parameters: parameters.into_values().collect(),
+    }
+}
+
+fn registration_prefix(
+    path: &VariablePath,
+    tag_name: &str,
+    dynamic_registration: bool,
+) -> Option<Vec<PathSegment>> {
+    if dynamic_registration
+        && matches!(&path.root, VariableRoot::Lexical { name, .. } if name == "tag")
+        && matches!(path.segments.first(), Some(PathSegment::Static(name)) if name == tag_name)
+    {
+        return Some(path.segments[..1].to_vec());
+    }
+    let index = path.segments.windows(2).position(|pair| {
+        matches!(&pair[0], PathSegment::Static(name) if name == "master_tag" || name == "tag")
+            && matches!(&pair[1], PathSegment::Static(name) if name == tag_name)
+    })?;
+    Some(path.segments[..index + 2].to_vec())
+}
+
+fn extract_tag_object(
+    value: &JsValueExpr,
+    parameters: &mut std::collections::BTreeMap<String, JsTagParameter>,
+    vital: &mut HashSet<String>,
+) {
+    let JsValueExpr::Object(properties) = value else {
+        return;
+    };
+    for (name, value) in properties {
+        match name.as_str() {
+            "pm" => extract_pm_object(value, parameters),
+            "vital" => extract_vital(value, vital),
+            _ => {}
+        }
+    }
+}
+
+fn extract_pm_object(
+    value: &JsValueExpr,
+    parameters: &mut std::collections::BTreeMap<String, JsTagParameter>,
+) {
+    let JsValueExpr::Object(properties) = value else {
+        return;
+    };
+    for (name, default) in properties {
+        let types = intended_default_types(default);
+        insert_parameter(parameters, name, types);
+    }
+}
+
+fn extract_vital(value: &JsValueExpr, vital: &mut HashSet<String>) {
+    let JsValueExpr::Array(values) = value else {
+        return;
+    };
+    for value in values {
+        if let JsValueExpr::String(name) = value {
+            vital.insert(name.clone());
+        }
+    }
+}
+
+fn intended_default_types(value: &JsValueExpr) -> JsTypeSet {
+    match value {
+        // Tyrano uses nullish defaults as an "argument not supplied" sentinel.
+        // A supplied tag parameter is still allowed to replace that sentinel
+        // with any JavaScript value, so the default does not constrain its type.
+        JsValueExpr::Null | JsValueExpr::Undefined => JsTypeSet::UNKNOWN,
+        JsValueExpr::String(value) if value.is_empty() => JsTypeSet::UNKNOWN,
+        JsValueExpr::String(value) if matches!(value.as_str(), "true" | "false") => {
+            JsTypeSet::BOOLEAN
+        }
+        JsValueExpr::String(value) if value.parse::<f64>().is_ok() => JsTypeSet::NUMBER,
+        _ => value.possible_types(),
+    }
+}
+
+fn insert_parameter(
+    parameters: &mut std::collections::BTreeMap<String, JsTagParameter>,
+    name: &str,
+    types: JsTypeSet,
+) {
+    parameters
+        .entry(name.to_owned())
+        .and_modify(|parameter| parameter.types = parameter.types.union(types))
+        .or_insert(JsTagParameter {
+            name: name.to_owned(),
+            required: false,
+            types,
+        });
+}
+
 /// Statically registered custom tag names in reachable plugin JavaScript.
 #[salsa::tracked]
 pub fn project_javascript_tag_names(db: &dyn ProjectDb, project: Project) -> Arc<[String]> {
     let mut names = project_javascript_tag_registrations(db, project)
         .iter()
         .map(|registration| registration.name.clone())
+        .filter(|name| builtin_registry().get(name).is_none())
         .collect::<Vec<_>>();
     names.sort();
     names.dedup();
     names.into()
+}
+
+/// Merged parameter information for one tag implementation. Multiple engine
+/// files may extend the same `master_tag`, so parameter types and required
+/// flags are joined rather than selecting an arbitrary registration.
+pub fn project_javascript_tag_spec(
+    db: &dyn ProjectDb,
+    project: Project,
+    name: &str,
+) -> Option<JsTagSpec> {
+    let mut parameters: std::collections::BTreeMap<String, JsTagParameter> = Default::default();
+    for registration in project_javascript_tag_registrations(db, project)
+        .iter()
+        .filter(|registration| registration.name == name)
+    {
+        for parameter in &registration.spec.parameters {
+            parameters
+                .entry(parameter.name.clone())
+                .and_modify(|known| {
+                    known.required |= parameter.required;
+                    known.types = known.types.union(parameter.types);
+                })
+                .or_insert_with(|| parameter.clone());
+        }
+    }
+    (!parameters.is_empty()).then(|| JsTagSpec {
+        parameters: parameters.into_values().collect(),
+    })
 }
 
 /// Registration locations of one reachable plugin tag.
@@ -572,7 +794,7 @@ mod tests {
             .unwrap();
         assert!(matches!(
             crate::SemanticModel::new(&db, file).resolve_tag("custom_tag"),
-            crate::TagResolution::Plugin
+            crate::TagResolution::Plugin(_)
         ));
         let definitions = project_javascript_tag_definitions(&db, db.project(), "custom_tag");
         assert_eq!(definitions.len(), 1, "{definitions:#?}");
@@ -607,6 +829,71 @@ mod tests {
             &source[usize::from(definitions[0].range.start())
                 ..usize::from(definitions[0].range.end())],
             "bg_rule"
+        );
+    }
+
+    #[test]
+    fn extracts_master_tag_parameter_list_types_and_vital_arguments() {
+        let db = ProjectBuilder::new()
+            .file("data/scenario/first.ks", "[loadjs storage=demo.js]\n[custom storage=x time=2 target=*next]\n")
+            .javascript(
+                "data/others/demo.js",
+                "TYRANO.kag.ftag.master_tag.custom = { pm: { storage: '', target: null, time: 100, wait: 'true' }, vital: ['storage'], start: function(pm) { return pm.time * 2; } };\n",
+            )
+            .build();
+        let registrations = project_javascript_tag_registrations(&db, db.project());
+        let registration = registrations
+            .iter()
+            .find(|registration| registration.name == "custom")
+            .unwrap();
+        assert_eq!(registration.spec.parameters.len(), 4);
+        let storage = registration
+            .spec
+            .parameters
+            .iter()
+            .find(|parameter| parameter.name == "storage")
+            .unwrap();
+        assert!(storage.required);
+        let target = registration
+            .spec
+            .parameters
+            .iter()
+            .find(|parameter| parameter.name == "target")
+            .unwrap();
+        assert_eq!(target.types, JsTypeSet::UNKNOWN);
+        let time = registration
+            .spec
+            .parameters
+            .iter()
+            .find(|parameter| parameter.name == "time")
+            .unwrap();
+        assert!(time.types.intersects(JsTypeSet::NUMBER));
+        let wait = registration
+            .spec
+            .parameters
+            .iter()
+            .find(|parameter| parameter.name == "wait")
+            .unwrap();
+        assert_eq!(wait.types, JsTypeSet::BOOLEAN);
+    }
+
+    #[test]
+    fn engine_master_tag_sources_augment_builtins_without_becoming_plugin_names() {
+        let db = ProjectBuilder::new()
+            .file("data/scenario/first.ks", "[jump storage=next.ks target=*next]\n")
+            .javascript(
+                "tyrano/plugins/kag/kag.tag.js",
+                "tyrano.plugin.kag.tag.jump = { pm: { storage: null, target: null }, start: function(pm) {} };\n",
+            )
+            .build();
+
+        assert!(project_javascript_tag_names(&db, db.project()).is_empty());
+        let spec = project_javascript_tag_spec(&db, db.project(), "jump").unwrap();
+        assert_eq!(spec.parameters.len(), 2);
+        assert!(
+            spec.parameters
+                .iter()
+                .all(|parameter| parameter.types == JsTypeSet::UNKNOWN)
         );
     }
 

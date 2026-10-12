@@ -81,7 +81,7 @@ fn check_golden(path: &Path, actual: &str) {
             .lines()
             .zip(actual.lines())
             .position(|(e, a)| e != a)
-            .map_or(expected.lines().count().min(actual.lines().count()), |i| i);
+            .unwrap_or(expected.lines().count().min(actual.lines().count()));
         panic!(
             "golden mismatch for {path:?} at line {}:\n expected: {:?}\n actual:   {:?}\n(rerun with UPDATE_EXPECT=1 after reviewing)",
             diff_line + 1,

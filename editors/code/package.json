@@ -3,7 +3,7 @@
   "displayName": "Tyranoscript-LSP",
   "description": "Language support for TyranoScript (.ks) visual-novel scenario files, powered by the tyrano-lsp language server.",
   "publisher": "darallium",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "license": "MIT",
   "private": false,
   "repository": {
@@ -59,6 +59,28 @@
           "type": "string",
           "default": "",
           "description": "Absolute path to the tyrano-lsp executable. When empty, the extension searches (in order): `tyrano-lsp` on PATH, then `<extension>/server/tyrano-lsp`, then `<workspace>/target/release/tyrano-lsp`, then `<workspace>/target/debug/tyrano-lsp`."
+        },
+        "tyranoscript.diagnostics.nonHexColor": {
+          "type": "string",
+          "enum": [
+            "error",
+            "warning",
+            "note",
+            "default"
+          ],
+          "default": "default",
+          "description": "Severity for engine-compatible non-hex colors such as color=white. 'default' currently means note."
+        },
+        "tyranoscript.diagnostics.bareLabelTarget": {
+          "type": "string",
+          "enum": [
+            "error",
+            "warning",
+            "note",
+            "default"
+          ],
+          "default": "default",
+          "description": "Severity for target labels written without the canonical leading '*'. 'default' currently means note."
         },
         "tyranoscript.trace.server": {
           "type": "string",

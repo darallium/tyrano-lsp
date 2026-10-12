@@ -15,8 +15,8 @@ use tyrano_syntax::text::{TextRange, TextSize};
 
 use crate::flow::macro_at;
 use crate::{
-    FlowEdgeKind, FlowUnit, FlowUnitKind, ProjectFlowAnalysis, analyze_project_flow,
-    file_js_analysis,
+    FlowEdgeKind, FlowUnit, FlowUnitKind, MacroValueBindings, ProjectFlowAnalysis,
+    analyze_macro_value_bindings, analyze_project_flow, file_js_analysis,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -155,6 +155,7 @@ struct TransferRecorder<'a> {
 
 pub fn analyze_project_variables(db: &dyn ProjectDb) -> ProjectVariableAnalysis {
     let flow = analyze_project_flow(db);
+    let macro_values = analyze_macro_value_bindings(db);
     let Some(entry) = flow.entry else {
         return ProjectVariableAnalysis {
             flow,
@@ -204,6 +205,7 @@ pub fn analyze_project_variables(db: &dyn ProjectDb) -> ProjectVariableAnalysis 
             &flow.units[unit_id],
             &inputs[unit_id],
             &effects[unit_id],
+            &macro_values,
             &mut TransferRecorder {
                 path_ids: &path_ids,
                 record: false,
@@ -268,6 +270,7 @@ pub fn analyze_project_variables(db: &dyn ProjectDb) -> ProjectVariableAnalysis 
             &flow.units[unit_id],
             &inputs[unit_id],
             &effects[unit_id],
+            &macro_values,
             &mut TransferRecorder {
                 path_ids: &path_ids,
                 record: true,
@@ -321,15 +324,22 @@ fn transfer_unit(
     unit: &FlowUnit,
     input: &[AbstractDefinition],
     effects: &[LocatedEffect],
+    macro_values: &MacroValueBindings,
     recorder: &mut TransferRecorder<'_>,
 ) -> Vec<AbstractDefinition> {
     let mut state = input.to_vec();
-    if matches!(unit.kind, FlowUnitKind::Macro(_)) {
+    if let FlowUnitKind::Macro(name) = &unit.kind {
+        let bindings = macro_values.by_macro.get(name);
         for (path, &id) in recorder.path_ids {
-            if path.namespace == EngineNamespace::Mp && state[id] == AbstractDefinition::Undefined {
-                // Macro parameters are caller-provided and untyped: absence is
-                // possible, but they are not definitely absent.
+            if path.namespace != EngineNamespace::Mp || state[id] != AbstractDefinition::Undefined {
+                continue;
+            }
+            let Some(StateSegment::Static(parameter)) = path.segments.first() else {
                 state[id] = AbstractDefinition::MaybeDefined;
+                continue;
+            };
+            if bindings.is_some_and(|bindings| bindings.contains_key(parameter)) {
+                state[id] = AbstractDefinition::Defined;
             }
         }
     }

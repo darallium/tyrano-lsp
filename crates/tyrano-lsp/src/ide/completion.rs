@@ -7,7 +7,9 @@
 use tyrano_parser_core::SymbolKind;
 use tyrano_project::registry::{GLOBAL_PARAMS, ValueKind, builtin_registry};
 use tyrano_project::{File, ProjectDb};
-use tyrano_semantic::{SemanticModel, TagResolution, project_javascript_tag_names};
+use tyrano_semantic::{
+    SemanticModel, TagResolution, macro_signature, project_javascript_tag_names,
+};
 use tyrano_syntax::text::TextSize;
 
 /// What a completion item is, mapped to an LSP kind by the adapter.
@@ -64,10 +66,19 @@ pub fn completions(db: &dyn ProjectDb, file: File, offset: TextSize) -> Vec<Comp
         return Vec::new();
     }
     let text = file.source(db).text(db);
-    match context(text, usize::from(offset.min(TextSize::of(text)))) {
+    let offset = offset.min(TextSize::of(text));
+    let arguments = completion_arguments(db, file, text, offset);
+    match context(text, usize::from(offset)) {
         Context::TagName => tag_completions(db, file),
-        Context::ParamName { tag } => param_completions(db, file, &tag),
+        Context::ParamName { tag } => param_completions(db, file, &tag, &arguments),
         Context::ParamValue { tag, param, params } => {
+            let mut arguments = arguments.clone();
+            arguments.remove(&param);
+            let params = if builtin_registry().get(&tag).is_some() {
+                params
+            } else {
+                arguments.into_iter().collect()
+            };
             value_completions(db, file, &tag, &param, &params)
         }
         Context::None => Vec::new(),
@@ -120,7 +131,12 @@ fn tag_completions(db: &dyn ProjectDb, file: File) -> Vec<CompletionItem> {
 }
 
 /// Parameter names of `tag` (builtin spec + universal parameters).
-fn param_completions(db: &dyn ProjectDb, file: File, tag: &str) -> Vec<CompletionItem> {
+fn param_completions(
+    db: &dyn ProjectDb,
+    file: File,
+    tag: &str,
+    arguments: &std::collections::BTreeMap<String, String>,
+) -> Vec<CompletionItem> {
     let mut out = Vec::new();
     if let Some(spec) = builtin_registry().get(tag) {
         for p in spec.params {
@@ -131,9 +147,59 @@ fn param_completions(db: &dyn ProjectDb, file: File, tag: &str) -> Vec<Completio
                 detail: Some(requirement.to_string()),
             });
         }
+        if let Some(implementation) =
+            tyrano_semantic::project_javascript_tag_spec(db, db.project(), tag)
+        {
+            for parameter in implementation
+                .parameters
+                .into_iter()
+                .filter(|parameter| spec.param(&parameter.name).is_none())
+            {
+                let requirement = if parameter.required {
+                    "required"
+                } else {
+                    "optional"
+                };
+                out.push(CompletionItem {
+                    label: parameter.name,
+                    kind: CompletionKind::Param,
+                    detail: Some(format!("master_tag implementation, {requirement}")),
+                });
+            }
+        }
     } else {
         match SemanticModel::new(db, file).resolve_tag(tag) {
-            TagResolution::Macro(_) | TagResolution::Plugin => {}
+            TagResolution::Macro(definition) => {
+                if let Some(signature) = macro_signature(db, &definition) {
+                    let selected = super::macro_call::select(&signature, arguments);
+                    for (name, detail) in super::macro_call::parameter_docs(&selected, None) {
+                        out.push(CompletionItem {
+                            label: name,
+                            kind: CompletionKind::Param,
+                            detail: Some(detail),
+                        });
+                    }
+                    out.push(CompletionItem {
+                        label: "*".to_owned(),
+                        kind: CompletionKind::Param,
+                        detail: Some("forward every caller mp parameter".to_owned()),
+                    });
+                }
+            }
+            TagResolution::Plugin(spec) => {
+                for parameter in spec.parameters {
+                    let requirement = if parameter.required {
+                        "required"
+                    } else {
+                        "optional"
+                    };
+                    out.push(CompletionItem {
+                        label: parameter.name,
+                        kind: CompletionKind::Param,
+                        detail: Some(format!("master_tag parameter, {requirement}")),
+                    });
+                }
+            }
             TagResolution::Builtin(_) | TagResolution::Unknown => return Vec::new(),
         }
     }
@@ -144,7 +210,7 @@ fn param_completions(db: &dyn ProjectDb, file: File, tag: &str) -> Vec<Completio
             detail: Some("universal (condition)".to_string()),
         });
     }
-    out
+    merge_completions(out)
 }
 
 /// Values for `param` of `tag`: labels, scenario files, assets, enums.
@@ -155,16 +221,72 @@ fn value_completions(
     param: &str,
     params: &[(String, String)],
 ) -> Vec<CompletionItem> {
-    let Some(spec) = builtin_registry().get(tag) else {
+    if let Some(spec) = builtin_registry().get(tag) {
+        return spec
+            .param(param)
+            .map(|p| kind_completions(db, file, p.kind, params))
+            .unwrap_or_default();
+    }
+    let TagResolution::Macro(definition) = SemanticModel::new(db, file).resolve_tag(tag) else {
         return Vec::new();
     };
-    let Some(param) = spec.param(param) else {
+    let Some(signature) = macro_signature(db, &definition) else {
         return Vec::new();
     };
+    let arguments = params.iter().cloned().collect();
+    let selected = super::macro_call::select(&signature, &arguments);
+    let mut out = Vec::new();
+    let mut add = |parameters: &[tyrano_semantic::MacroParameterSpec],
+                   condition: Option<String>| {
+        for p in parameters.iter().filter(|p| p.name == param) {
+            let mut kinds = p.kinds.clone();
+            if p.js_types == tyrano_js_analysis::JsTypeSet::BOOLEAN
+                && !kinds.contains(&ValueKind::Boolean)
+            {
+                kinds.push(ValueKind::Boolean);
+            }
+            for kind in kinds {
+                for mut item in kind_completions(db, file, kind, params) {
+                    if let Some(c) = &condition {
+                        item.detail = Some(format!(
+                            "{}when {c}",
+                            item.detail.map(|d| format!("{d}; ")).unwrap_or_default()
+                        ));
+                    }
+                    out.push(item);
+                }
+            }
+        }
+    };
+    add(&selected.parameters, None);
+    for branch in &selected.pending {
+        add(
+            &branch.parameters,
+            Some(super::macro_call::conditions(&branch.conditions)),
+        );
+    }
+    for branch in &selected.pending {
+        for c in branch.conditions.iter().filter(|c| c.parameter == param) {
+            out.push(CompletionItem {
+                label: c.equals.clone(),
+                kind: CompletionKind::Value,
+                detail: Some(super::macro_call::conditions(&branch.conditions)),
+            });
+        }
+    }
+    merge_completions(out)
+}
+
+fn kind_completions(
+    db: &dyn ProjectDb,
+    file: File,
+    kind: ValueKind,
+    params: &[(String, String)],
+) -> Vec<CompletionItem> {
     let model = SemanticModel::new(db, file);
     let settings = db.project().settings(db);
 
-    match param.kind {
+    match kind {
         ValueKind::Label => {
             // Labels of the `storage=` file when one is already written on
             // this tag, otherwise labels of the current file.
@@ -245,6 +367,62 @@ fn value_completions(
             .collect(),
         _ => Vec::new(),
     }
+}
+
+fn merge_completions(items: Vec<CompletionItem>) -> Vec<CompletionItem> {
+    let mut merged = std::collections::BTreeMap::<String, CompletionItem>::new();
+    for item in items {
+        if let Some(previous) = merged.get_mut(&item.label) {
+            if let Some(detail) = item.detail {
+                let existing = previous.detail.get_or_insert_with(String::new);
+                if !existing.split("; ").any(|part| part == detail) {
+                    if !existing.is_empty() {
+                        existing.push_str("; ");
+                    }
+                    existing.push_str(&detail);
+                }
+            }
+        } else {
+            merged.insert(item.label.clone(), item);
+        }
+    }
+    merged.into_values().collect()
+}
+
+fn completion_arguments(
+    db: &dyn ProjectDb,
+    file: File,
+    text: &str,
+    offset: TextSize,
+) -> std::collections::BTreeMap<String, String> {
+    let pos = usize::from(offset);
+    let start = text[..pos].rfind('\n').map_or(0, |i| i + 1);
+    let prefix = &text[start..pos];
+    let mut arguments = std::collections::BTreeMap::new();
+    if let Some(inner) = tag_start(prefix) {
+        let words = split_words(&prefix[inner..]);
+        for (word, _) in words.iter().skip(1) {
+            if let Some((name, value)) = split_param(word) {
+                if value.is_empty() {
+                    continue;
+                }
+                let first = value.chars().next().unwrap();
+                if matches!(first, '\'' | '"' | '`') && (value.len() < 2 || !value.ends_with(first))
+                {
+                    continue;
+                }
+                let value = unquote(value);
+                if value.starts_with('&') || value.starts_with('%') {
+                    continue;
+                }
+                arguments.insert(name.to_owned(), value.to_owned());
+            }
+        }
+    }
+    if let Some(cst) = super::macro_call::arguments_at(db, file, offset) {
+        arguments.extend(cst);
+    }
+    arguments
 }
 
 // ======================================================================

@@ -147,6 +147,6 @@ mod tests {
             !GreenNode::ptr_eq(before.green(), after.green()),
             "options are a parse input"
         );
-        assert_eq!(after.options().loose_endscript_termination, false);
+        assert!(!after.options().loose_endscript_termination);
     }
 }

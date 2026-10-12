@@ -18,7 +18,8 @@ use lsp_types::{
     PublishDiagnosticsParams, ReferenceParams, ServerCapabilities, SymbolKind as LspSymbolKind,
     TextDocumentSyncCapability, TextDocumentSyncKind, Url,
 };
-use tyrano_project::File;
+use serde::Deserialize;
+use tyrano_project::{CompatibilityDiagnostics, DiagnosticLevel, File, ProjectSettings};
 use tyrano_syntax::text::TextSize;
 
 use crate::ide;
@@ -53,12 +54,66 @@ pub fn run(connection: Connection) -> Result<()> {
     connection.initialize_finish(initialize_id, result)?;
 
     let root = workspace_root(&params);
+    let settings = project_settings(&params);
     let session = match &root {
-        Some(root) => Session::open(root).unwrap_or_else(|_| Session::empty(root.clone())),
-        None => Session::empty(std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))),
+        Some(root) => Session::open_with_settings(root, settings.clone())
+            .unwrap_or_else(|_| Session::empty_with_settings(root.clone(), settings.clone())),
+        None => Session::empty_with_settings(
+            std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+            settings,
+        ),
     };
 
     main_loop(connection, session)
+}
+
+#[derive(Debug, Clone, Copy, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum ConfiguredDiagnosticLevel {
+    Error,
+    Warning,
+    Note,
+    #[default]
+    Default,
+}
+
+impl From<ConfiguredDiagnosticLevel> for DiagnosticLevel {
+    fn from(value: ConfiguredDiagnosticLevel) -> Self {
+        match value {
+            ConfiguredDiagnosticLevel::Error => DiagnosticLevel::Error,
+            ConfiguredDiagnosticLevel::Warning => DiagnosticLevel::Warning,
+            ConfiguredDiagnosticLevel::Note => DiagnosticLevel::Note,
+            ConfiguredDiagnosticLevel::Default => DiagnosticLevel::Default,
+        }
+    }
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+struct InitializationDiagnostics {
+    non_hex_color: ConfiguredDiagnosticLevel,
+    bare_label_target: ConfiguredDiagnosticLevel,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct InitializationOptions {
+    diagnostics: InitializationDiagnostics,
+}
+
+fn project_settings(params: &InitializeParams) -> ProjectSettings {
+    let options = params
+        .initialization_options
+        .clone()
+        .and_then(|value| serde_json::from_value::<InitializationOptions>(value).ok())
+        .unwrap_or_default();
+    ProjectSettings {
+        compatibility_diagnostics: CompatibilityDiagnostics {
+            non_hex_color: options.diagnostics.non_hex_color.into(),
+            bare_label_target: options.diagnostics.bare_label_target.into(),
+        },
+        ..ProjectSettings::default()
+    }
 }
 
 /// The workspace root from initialize params (first workspace folder,
@@ -66,9 +121,10 @@ pub fn run(connection: Connection) -> Result<()> {
 fn workspace_root(params: &InitializeParams) -> Option<PathBuf> {
     if let Some(folders) = &params.workspace_folders
         && let Some(folder) = folders.first()
-            && let Ok(path) = folder.uri.to_file_path() {
-                return Some(path);
-            }
+        && let Ok(path) = folder.uri.to_file_path()
+    {
+        return Some(path);
+    }
     #[allow(deprecated)]
     params
         .root_uri
@@ -310,9 +366,10 @@ fn handle_notification(
                 serde_json::from_value(notification.params)?;
             // Full sync: the last change carries the whole text.
             if let Some(change) = params.content_changes.pop()
-                && let Ok(abs) = params.text_document.uri.to_file_path() {
-                    session.set_text(&abs, change.text);
-                }
+                && let Ok(abs) = params.text_document.uri.to_file_path()
+            {
+                session.set_text(&abs, change.text);
+            }
             publish_all(connection, session, open_docs)?;
         }
         DidCloseTextDocument::METHOD => {
@@ -397,4 +454,55 @@ fn send_diagnostics(connection: &Connection, uri: Url, diagnostics: Vec<Diagnost
             params: serde_json::to_value(params)?,
         }))?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn initialization_options_map_all_compatibility_levels() {
+        let params: InitializeParams = serde_json::from_value(serde_json::json!({
+            "capabilities": {},
+            "initializationOptions": {
+                "diagnostics": {
+                    "nonHexColor": "error",
+                    "bareLabelTarget": "warning"
+                }
+            }
+        }))
+        .unwrap();
+        let settings = project_settings(&params);
+        assert_eq!(
+            settings.compatibility_diagnostics.non_hex_color,
+            DiagnosticLevel::Error
+        );
+        assert_eq!(
+            settings.compatibility_diagnostics.bare_label_target,
+            DiagnosticLevel::Warning
+        );
+
+        let default_params: InitializeParams = serde_json::from_value(serde_json::json!({
+            "capabilities": {},
+            "initializationOptions": {
+                "diagnostics": {
+                    "nonHexColor": "default",
+                    "bareLabelTarget": "note"
+                }
+            }
+        }))
+        .unwrap();
+        let settings = project_settings(&default_params);
+        assert_eq!(
+            settings.compatibility_diagnostics.non_hex_color.severity(),
+            tyrano_syntax::diagnostics::Severity::Info
+        );
+        assert_eq!(
+            settings
+                .compatibility_diagnostics
+                .bare_label_target
+                .severity(),
+            tyrano_syntax::diagnostics::Severity::Info
+        );
+    }
 }

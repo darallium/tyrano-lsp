@@ -8,7 +8,10 @@
 use std::io;
 use std::path::{Path, PathBuf};
 
-use tyrano_project::{File, FileChange, ProjectDatabase, ProjectPath, load_project};
+use tyrano_project::{
+    File, FileChange, ProjectDatabase, ProjectMetadata, ProjectPath, ProjectSettings,
+    load_project_with,
+};
 
 /// One open TyranoScript workspace.
 pub struct Session {
@@ -21,8 +24,13 @@ impl Session {
     /// root ([`find_project_root`]). Falls back to an empty project when
     /// nothing on disk looks like one.
     pub fn open(workspace: &Path) -> io::Result<Session> {
+        Self::open_with_settings(workspace, ProjectSettings::default())
+    }
+
+    /// Opens a project with client-supplied analysis settings.
+    pub fn open_with_settings(workspace: &Path, settings: ProjectSettings) -> io::Result<Session> {
         let root = find_project_root(workspace);
-        let metadata = load_project(&root)?;
+        let metadata = load_project_with(&root, settings)?;
         Ok(Session {
             root,
             db: ProjectDatabase::new(metadata),
@@ -31,9 +39,16 @@ impl Session {
 
     /// An empty session rooted at `root` (tests, projects yet to exist).
     pub fn empty(root: PathBuf) -> Session {
+        Self::empty_with_settings(root, ProjectSettings::default())
+    }
+
+    pub fn empty_with_settings(root: PathBuf, settings: ProjectSettings) -> Session {
         Session {
             root,
-            db: ProjectDatabase::empty(),
+            db: ProjectDatabase::new(ProjectMetadata {
+                settings,
+                ..ProjectMetadata::default()
+            }),
         }
     }
 

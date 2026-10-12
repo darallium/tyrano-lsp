@@ -14,6 +14,42 @@ use tyrano_syntax::ast::InterpretOptions;
 use crate::files::File;
 use crate::path::ProjectPath;
 
+/// Configurable severity for engine-compatible, non-canonical syntax.
+///
+/// `Default` deliberately remains a separate value so clients can follow
+/// future project defaults without rewriting their configuration.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DiagnosticLevel {
+    Error,
+    Warning,
+    Note,
+    #[default]
+    Default,
+}
+
+impl DiagnosticLevel {
+    /// Resolves the configured level. Compatibility diagnostics default to
+    /// notes because Tyrano accepts the syntax at runtime.
+    pub const fn severity(self) -> tyrano_syntax::diagnostics::Severity {
+        use tyrano_syntax::diagnostics::Severity;
+        match self {
+            DiagnosticLevel::Error => Severity::Error,
+            DiagnosticLevel::Warning => Severity::Warning,
+            DiagnosticLevel::Note | DiagnosticLevel::Default => Severity::Info,
+        }
+    }
+}
+
+/// Policies for syntax that is valid in Tyrano but less explicit than the
+/// canonical form used by this analyzer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct CompatibilityDiagnostics {
+    /// CSS/named colors such as `white` instead of `#ffffff`.
+    pub non_hex_color: DiagnosticLevel,
+    /// Label targets written as `target=start` instead of `target=*start`.
+    pub bare_label_target: DiagnosticLevel,
+}
+
 /// The asset namespaces of a standard TyranoScript project, each backed
 /// by one `data/…` directory by default.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -82,6 +118,8 @@ pub struct ProjectSettings {
     pub parse_options: ParseOptions,
     /// Engine-quirk interpretation options for every scenario file.
     pub interpret_options: InterpretOptions,
+    /// Severity policy for engine-compatible forms.
+    pub compatibility_diagnostics: CompatibilityDiagnostics,
 }
 
 impl Default for ProjectSettings {
@@ -91,13 +129,17 @@ impl Default for ProjectSettings {
         let data = ProjectPath::new("data").expect("static path");
         ProjectSettings {
             scenario_roots: vec![data.join("scenario").expect("static path")],
-            source_roots: vec![data.clone()],
+            source_roots: vec![
+                data.clone(),
+                ProjectPath::new("tyrano/plugins/kag").expect("static path"),
+            ],
             asset_roots: AssetKind::ALL
                 .into_iter()
                 .map(|k| (k, vec![data.join(k.dir_name()).expect("static path")]))
                 .collect(),
             parse_options: ParseOptions::default(),
             interpret_options: InterpretOptions::default(),
+            compatibility_diagnostics: CompatibilityDiagnostics::default(),
         }
     }
 }
@@ -108,12 +150,17 @@ impl Default for ProjectSettings {
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AssetIndex {
     by_kind: BTreeMap<AssetKind, BTreeSet<ProjectPath>>,
+    all_files: BTreeSet<ProjectPath>,
 }
 
 impl AssetIndex {
     /// Builds an index from full project-relative asset paths per kind.
-    pub fn new(by_kind: BTreeMap<AssetKind, BTreeSet<ProjectPath>>) -> AssetIndex {
-        AssetIndex { by_kind }
+    pub fn new(
+        by_kind: BTreeMap<AssetKind, BTreeSet<ProjectPath>>,
+        mut all_files: BTreeSet<ProjectPath>,
+    ) -> AssetIndex {
+        all_files.extend(by_kind.values().flatten().cloned());
+        AssetIndex { by_kind, all_files }
     }
 
     /// Whether `path` exists in namespace `kind`.
@@ -122,7 +169,7 @@ impl AssetIndex {
     }
 
     pub fn contains_any(&self, path: &ProjectPath) -> bool {
-        self.by_kind.values().any(|paths| paths.contains(path))
+        self.all_files.contains(path)
     }
 
     /// All paths of namespace `kind`, in sorted order.
@@ -140,6 +187,16 @@ impl AssetIndex {
         if let Some(set) = self.by_kind.get_mut(&kind) {
             set.remove(path);
         }
+    }
+
+    /// Records a file even when it is outside a configured asset namespace
+    /// (for example `tyrano/images/system`).
+    pub fn insert_file(&mut self, path: ProjectPath) {
+        self.all_files.insert(path);
+    }
+
+    pub fn remove_file(&mut self, path: &ProjectPath) {
+        self.all_files.remove(path);
     }
 }
 
@@ -180,4 +237,7 @@ pub struct ProjectMetadata {
     pub javascript_sources: Vec<(ProjectPath, String)>,
     /// Full project-relative asset paths per namespace.
     pub assets: BTreeMap<AssetKind, BTreeSet<ProjectPath>>,
+    /// Every regular file under the project root, including engine resources
+    /// outside `data/`.
+    pub project_files: BTreeSet<ProjectPath>,
 }

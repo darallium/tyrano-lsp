@@ -16,24 +16,37 @@ mod flow;
 mod js;
 mod js_navigation;
 mod labels;
+mod macro_signature;
 mod model;
+mod value;
 mod variable;
 
 pub use deps::{DependencyGraph, file_dependencies, project_dependency_graph};
 pub use flow::{
-    FlowEdge, FlowEdgeKind, FlowUnit, FlowUnitKind, ProjectFlowAnalysis, analyze_project_flow,
+    FlowArgument, FlowEdge, FlowEdgeKind, FlowUnit, FlowUnitKind, MacroValueBindings,
+    ProjectFlowAnalysis, analyze_macro_value_bindings, analyze_project_flow,
 };
 pub use js::{
-    FileJsAnalysis, JsRegion, JsRegionKind, JsTagRegistration, analyze_project_javascript,
-    file_js_analysis, javascript_tag_at, project_javascript_tag_definitions,
-    project_javascript_tag_names, project_javascript_tag_registrations,
+    FileJsAnalysis, JsRegion, JsRegionKind, JsTagParameter, JsTagRegistration, JsTagSpec,
+    analyze_project_javascript, file_js_analysis, javascript_tag_at,
+    project_javascript_tag_definitions, project_javascript_tag_names,
+    project_javascript_tag_registrations, project_javascript_tag_spec,
 };
 pub use js_navigation::{
     JsSourceLocation, JsSymbol, ProjectJsNavigationIndex, js_definition_locations,
     js_reference_locations, js_symbol_at, project_js_navigation_index,
 };
 pub use labels::exported_labels;
+pub use macro_signature::{
+    ConditionalMacroSignature, MacroCondition, MacroParameterSpec, MacroSignature,
+    SelectedMacroSignature, macro_signature, project_macro_signatures, select_macro_signature,
+    static_macro_arguments,
+};
 pub use model::{LabelResolution, LabelTarget, ProjectResolution, SemanticModel, TagResolution};
+pub use value::{
+    ScalarValue, ValueCandidates, value_candidates_for_parameter,
+    value_candidates_for_parameter_with_mp, value_candidates_in_range,
+};
 pub use variable::{
     AbstractDefinition, DerivedDefinition, DerivedDefinitionKind, LifecycleIssue,
     LifecycleIssueKind, ProjectVariableAnalysis, StatePath, StateSegment,

@@ -65,8 +65,8 @@ fn generate_debug_info(grammar: &str, out_dir: &str) {
         }
 
         if in_rules && !trimmed.is_empty() && !trimmed.starts_with("//") {
-            if trimmed.ends_with(':') {
-                current_lhs = trimmed[..trimmed.len() - 1].to_string();
+            if let Some(stripped) = trimmed.strip_suffix(':') {
+                current_lhs = stripped.to_string();
                 debug_output.push_str(&format!(
                     "\nLine {}: LHS (ends with colon): '{}'\n",
                     i + 1,
